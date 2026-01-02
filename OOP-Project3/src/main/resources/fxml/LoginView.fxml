@@ -5,52 +5,60 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.LoginController">
-   <center>
-      <VBox alignment="CENTER" spacing="20.0" style="-fx-background-color: #f5f5f5;">
-         <padding>
-            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-         </padding>
-         <children>
-            <Label text="Local Greengrocer" textFill="#2c3e50">
-               <font>
-                  <Font name="System Bold" size="32.0" />
-               </font>
-            </Label>
-            <Label text="Login to your account" textFill="#7f8c8d" />
-            <VBox spacing="10.0" style="-fx-background-color: white; -fx-background-radius: 10; -fx-padding: 30;">
-               <padding>
-                  <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
-               </padding>
-               <children>
-                  <Label text="Username:" />
-                  <TextField fx:id="usernameField" promptText="Enter username" />
-                  <Label text="Password:" />
-                  <PasswordField fx:id="passwordField" promptText="Enter password" />
-                  <Label fx:id="errorLabel" textFill="#e74c3c" visible="false" />
-                  <HBox spacing="10.0" alignment="CENTER">
-                     <Button fx:id="loginButton" mnemonicParsing="false" onAction="#handleLogin" text="Login" style="-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-weight: bold;">
-                        <HBox.margin>
-                           <Insets top="10.0" />
-                        </HBox.margin>
-                     </Button>
-                     <Button fx:id="registerButton" mnemonicParsing="false" onAction="#handleRegister" text="Register" style="-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;">
-                        <HBox.margin>
-                           <Insets top="10.0" />
-                        </HBox.margin>
-                     </Button>
-                  </HBox>
-               </children>
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+    fx:controller="com.group17.greengrocer.controller.LoginController"
+    style="-fx-background-color: linear-gradient(to bottom, #232f3e 0%, #232f3e 30%, #eaeded 30%, #eaeded 100%);">
+    
+    <center>
+        <VBox alignment="CENTER" spacing="20">
+            <padding>
+                <Insets bottom="50" left="20" right="20" top="50" />
+            </padding>
+            
+            <!-- Logo -->
+            <VBox alignment="CENTER" spacing="5">
+                <Label text="🥬" style="-fx-font-size: 48px;" />
+                <HBox alignment="CENTER" spacing="0">
+                    <Label text="Group17" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: white;" />
+                    <Label text=" GreenGrocer" style="-fx-font-size: 28px; -fx-font-weight: bold; -fx-text-fill: #ff9900;" />
+                </HBox>
+                <Label text="Fresh produce, delivered to your door" style="-fx-font-size: 14px; -fx-text-fill: #ccc;" />
             </VBox>
-         </children>
-      </VBox>
-   </center>
+            
+            <!-- Login Card -->
+            <VBox styleClass="login-card" spacing="15" maxWidth="380" minWidth="350">
+                <padding>
+                    <Insets bottom="25" left="25" right="25" top="25" />
+                </padding>
+                
+                <Label text="Sign in" style="-fx-font-size: 24px; -fx-font-weight: bold; -fx-text-fill: #0f1111;" />
+                
+                <VBox spacing="5">
+                    <Label text="Username" style="-fx-font-size: 13px; -fx-font-weight: bold;" />
+                    <TextField fx:id="usernameField" promptText="Enter your username" style="-fx-padding: 10;" />
+                </VBox>
+                
+                <VBox spacing="5">
+                    <Label text="Password" style="-fx-font-size: 13px; -fx-font-weight: bold;" />
+                    <PasswordField fx:id="passwordField" promptText="Enter your password" style="-fx-padding: 10;" />
+                </VBox>
+                
+                <Label fx:id="errorLabel" textFill="#b12704" visible="false" wrapText="true" />
+                
+                <Button fx:id="loginButton" text="Sign in" onAction="#handleLogin" 
+                    prefWidth="Infinity" styleClass="button-primary" style="-fx-padding: 12;" />
+                
+                <HBox alignment="CENTER" spacing="10">
+                    <Separator HBox.hgrow="ALWAYS" />
+                    <Label text="New to GreenGrocer?" style="-fx-font-size: 12px; -fx-text-fill: #767676;" />
+                    <Separator HBox.hgrow="ALWAYS" />
+                </HBox>
+                
+                <Button fx:id="registerButton" text="Create your account" 
+                    onAction="#handleRegister" prefWidth="Infinity" styleClass="button-secondary" style="-fx-padding: 10;" />
+            </VBox>
+            
+            <Label text="© 2026 Group17 GreenGrocer - CMPE343 Project" style="-fx-font-size: 11px; -fx-text-fill: #565959;" />
+        </VBox>
+    </center>
 </BorderPane>
-
-
-
-
-
-
-
-

@@ -5,211 +5,204 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.OwnerController">
-   <top>
-      <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #9b59b6; -fx-padding: 15;">
-         <children>
-            <Label text="Owner Dashboard" textFill="WHITE">
-               <font>
-                  <Font name="System Bold" size="20.0" />
-               </font>
-            </Label>
-            <Region HBox.hgrow="ALWAYS" />
-            <Label fx:id="welcomeLabel" text="Welcome, Owner" textFill="WHITE" />
-            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#handleLogout" text="Logout" />
-         </children>
-      </HBox>
-   </top>
-   <center>
-      <TabPane fx:id="mainTabPane">
-         <tabs>
-            <Tab text="Products">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <HBox spacing="10.0">
-                           <children>
-                              <Button fx:id="addProductButton" mnemonicParsing="false" onAction="#handleAddProduct" text="Add Product" />
-                              <Button fx:id="updateProductButton" mnemonicParsing="false" onAction="#handleUpdateProduct" text="Update Product" />
-                              <Button fx:id="applyDiscountButton" mnemonicParsing="false" onAction="#handleApplyDiscount" text="Apply Discount" />
-                              <Button fx:id="deleteProductButton" mnemonicParsing="false" onAction="#handleDeleteProduct" text="Delete Product" />
-                              <Region HBox.hgrow="ALWAYS" />
-                           </children>
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" 
+    fx:controller="com.group17.greengrocer.controller.OwnerController"
+    style="-fx-background-color: #eaeded;">
+    
+    <!-- Header -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="15" styleClass="amazon-header">
+            <padding>
+                <Insets bottom="12" left="20" right="20" top="12" />
+            </padding>
+            <children>
+                <HBox alignment="CENTER_LEFT" spacing="8">
+                    <Label text="📊" style="-fx-font-size: 28px;" />
+                    <VBox>
+                        <HBox spacing="0">
+                            <Label text="GreenGrocer" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;" />
+                            <Label text=" Seller" style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: #ff9900;" />
                         </HBox>
-                        <TableView fx:id="productsTable" VBox.vgrow="ALWAYS">
-                           <columns>
-                              <TableColumn fx:id="productIdColumn" prefWidth="80.0" text="ID" />
-                              <TableColumn fx:id="productNameColumn" prefWidth="150.0" text="Name" />
-                              <TableColumn fx:id="productTypeColumn" prefWidth="100.0" text="Type" />
-                              <TableColumn fx:id="priceColumn" prefWidth="100.0" text="Price/Kg" />
-                              <TableColumn fx:id="stockColumn" prefWidth="100.0" text="Stock" />
-                              <TableColumn fx:id="thresholdColumn" prefWidth="100.0" text="Threshold" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="Carriers">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <HBox spacing="10.0">
-                           <children>
-                              <Button fx:id="hireCarrierButton" mnemonicParsing="false" onAction="#handleHireCarrier" text="Hire Carrier" />
-                              <Button fx:id="fireCarrierButton" mnemonicParsing="false" onAction="#handleFireCarrier" text="Fire Carrier" />
-                              <Region HBox.hgrow="ALWAYS" />
-                           </children>
-                        </HBox>
-                        <TableView fx:id="carriersTable" VBox.vgrow="ALWAYS">
-                           <columns>
-                              <TableColumn fx:id="carrierIdColumn" prefWidth="80.0" text="ID" />
-                              <TableColumn fx:id="carrierNameColumn" prefWidth="150.0" text="Name" />
-                              <TableColumn fx:id="carrierEmailColumn" prefWidth="200.0" text="Email" />
-                              <TableColumn fx:id="carrierPhoneColumn" prefWidth="150.0" text="Phone" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="All Orders">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <TableView fx:id="allOrdersTable" VBox.vgrow="ALWAYS">
-                           <columns>
-                              <TableColumn fx:id="allOrderIdColumn" prefWidth="80.0" text="Order ID" />
-                              <TableColumn fx:id="allCustomerColumn" prefWidth="150.0" text="Customer" />
-                              <TableColumn fx:id="allCarrierColumn" prefWidth="150.0" text="Carrier" />
-                              <TableColumn fx:id="allStatusColumn" prefWidth="100.0" text="Status" />
-                              <TableColumn fx:id="allTotalColumn" prefWidth="120.0" text="Total" />
-                              <TableColumn fx:id="allOrderDateColumn" prefWidth="150.0" text="Order Date" />
-                              <TableColumn fx:id="allDeliveryDateColumn" prefWidth="150.0" text="Delivery Date" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="Messages">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <TableView fx:id="messagesTable" VBox.vgrow="ALWAYS">
-                           <columns>
-                              <TableColumn fx:id="messageIdColumn" prefWidth="80.0" text="ID" />
-                              <TableColumn fx:id="messageCustomerColumn" prefWidth="150.0" text="Customer" />
-                              <TableColumn fx:id="messageSubjectColumn" prefWidth="200.0" text="Subject" />
-                              <TableColumn fx:id="messageDateColumn" prefWidth="150.0" text="Date" />
-                              <TableColumn fx:id="messageReadColumn" prefWidth="80.0" text="Read" />
-                              <TableColumn fx:id="messageActionColumn" prefWidth="150.0" text="Action" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="Coupons &amp; Loyalty">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <HBox spacing="10.0">
-                           <children>
-                              <Button fx:id="createCouponButton" mnemonicParsing="false" onAction="#handleCreateCoupon" text="Create Coupon" />
-                              <Button fx:id="adjustLoyaltyButton" mnemonicParsing="false" onAction="#handleAdjustLoyalty" text="Adjust Loyalty Standards" />
-                              <Region HBox.hgrow="ALWAYS" />
-                           </children>
-                        </HBox>
-                        <Label text="Coupons:" style="-fx-font-weight: bold;" />
-                        <TableView fx:id="couponsTable" prefHeight="200.0">
-                           <columns>
-                              <TableColumn fx:id="couponIdColumn" prefWidth="80.0" text="ID" />
-                              <TableColumn fx:id="couponCustomerColumn" prefWidth="150.0" text="Customer" />
-                              <TableColumn fx:id="couponCodeColumn" prefWidth="150.0" text="Code" />
-                              <TableColumn fx:id="couponDiscountColumn" prefWidth="120.0" text="Discount" />
-                              <TableColumn fx:id="couponUsedColumn" prefWidth="80.0" text="Used" />
-                           </columns>
-                        </TableView>
-                        <Label text="Loyalty Standards:" style="-fx-font-weight: bold;" />
-                        <VBox fx:id="loyaltyStandardsContainer" spacing="10.0">
-                           <padding>
-                              <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                           </padding>
+                        <Label text="Business Management" style="-fx-font-size: 10px; -fx-text-fill: #aaa;" />
+                    </VBox>
+                </HBox>
+                
+                <Region HBox.hgrow="ALWAYS" />
+                
+                <HBox spacing="20" alignment="CENTER">
+                    <VBox alignment="CENTER" style="-fx-padding: 8 15; -fx-background-color: rgba(6,125,98,0.3); -fx-background-radius: 5;">
+                        <Label text="💰" style="-fx-font-size: 16px;" />
+                        <Label text="Sales" style="-fx-font-size: 10px; -fx-text-fill: #ccc;" />
+                    </VBox>
+                    <VBox alignment="CENTER" style="-fx-padding: 8 15; -fx-background-color: rgba(255,153,0,0.2); -fx-background-radius: 5;">
+                        <Label text="📦" style="-fx-font-size: 16px;" />
+                        <Label text="Orders" style="-fx-font-size: 10px; -fx-text-fill: #ccc;" />
+                    </VBox>
+                </HBox>
+                
+                <Region prefWidth="30" />
+                
+                <VBox alignment="CENTER_RIGHT">
+                    <Label text="Welcome," style="-fx-font-size: 11px; -fx-text-fill: #ccc;" />
+                    <Label fx:id="welcomeLabel" text="Owner" style="-fx-font-size: 14px; -fx-font-weight: bold; -fx-text-fill: white;" />
+                </VBox>
+                
+                <Button fx:id="logoutButton" text="Sign Out" onAction="#handleLogout" styleClass="nav-button" style="-fx-text-fill: #febd69;" />
+            </children>
+        </HBox>
+    </top>
+    
+    <!-- Main Content -->
+    <center>
+        <TabPane fx:id="mainTabPane" tabClosingPolicy="UNAVAILABLE">
+            <tabs>
+                <Tab text="🛒 Products">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <HBox styleClass="card" spacing="15" alignment="CENTER_LEFT" style="-fx-padding: 15;">
+                                <Button fx:id="addProductButton" text="➕ Add Product" onAction="#handleAddProduct" styleClass="button-primary" />
+                                <Button fx:id="updateProductButton" text="✏️ Edit" onAction="#handleUpdateProduct" styleClass="button-secondary" />
+                                <Button fx:id="applyDiscountButton" text="🏷️ Discount" onAction="#handleApplyDiscount" styleClass="button-secondary" />
+                                <Button fx:id="deleteProductButton" text="🗑️ Delete" onAction="#handleDeleteProduct" styleClass="button-danger" />
+                            </HBox>
+                            
+                            <TableView fx:id="productsTable" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="productIdColumn" prefWidth="70" text="ID" />
+                                    <TableColumn fx:id="productNameColumn" prefWidth="180" text="Name" />
+                                    <TableColumn fx:id="productTypeColumn" prefWidth="120" text="Category" />
+                                    <TableColumn fx:id="priceColumn" prefWidth="110" text="Price/Kg" />
+                                    <TableColumn fx:id="stockColumn" prefWidth="100" text="Stock" />
+                                    <TableColumn fx:id="thresholdColumn" prefWidth="100" text="Threshold" />
+                                </columns>
+                            </TableView>
                         </VBox>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="Carrier Ratings">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <TableView fx:id="ratingsTable" VBox.vgrow="ALWAYS">
-                           <columns>
-                              <TableColumn fx:id="ratingIdColumn" prefWidth="80.0" text="ID" />
-                              <TableColumn fx:id="ratingCarrierColumn" prefWidth="150.0" text="Carrier" />
-                              <TableColumn fx:id="ratingCustomerColumn" prefWidth="150.0" text="Customer" />
-                              <TableColumn fx:id="ratingValueColumn" prefWidth="80.0" text="Rating" />
-                              <TableColumn fx:id="ratingCommentColumn" prefWidth="300.0" text="Comment" />
-                              <TableColumn fx:id="ratingDateColumn" prefWidth="150.0" text="Date" />
-                           </columns>
-                        </TableView>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-            <Tab text="Reports">
-               <content>
-                  <VBox spacing="10.0">
-                     <padding>
-                        <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                     </padding>
-                     <children>
-                        <HBox spacing="10.0">
-                           <children>
-                              <Button fx:id="profitReportButton" mnemonicParsing="false" onAction="#handleProfitReport" text="Profit Report" />
-                              <Button fx:id="deliveredOrdersButton" mnemonicParsing="false" onAction="#handleDeliveredOrders" text="Delivered Orders" />
-                              <Button fx:id="carrierPerformanceButton" mnemonicParsing="false" onAction="#handleCarrierPerformance" text="Carrier Performance" />
-                              <Region HBox.hgrow="ALWAYS" />
-                           </children>
-                        </HBox>
-                        <VBox fx:id="reportsContainer" spacing="10.0" VBox.vgrow="ALWAYS">
-                           <padding>
-                              <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
-                           </padding>
+                    </content>
+                </Tab>
+                
+                <Tab text="🚚 Carriers">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <HBox styleClass="card" spacing="15" alignment="CENTER_LEFT" style="-fx-padding: 15;">
+                                <Button fx:id="hireCarrierButton" text="👤➕ Hire" onAction="#handleHireCarrier" styleClass="button-primary" />
+                                <Button fx:id="fireCarrierButton" text="👤➖ Remove" onAction="#handleFireCarrier" styleClass="button-danger" />
+                            </HBox>
+                            
+                            <TableView fx:id="carriersTable" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="carrierIdColumn" prefWidth="80" text="ID" />
+                                    <TableColumn fx:id="carrierNameColumn" prefWidth="180" text="Name" />
+                                    <TableColumn fx:id="carrierEmailColumn" prefWidth="220" text="Email" />
+                                    <TableColumn fx:id="carrierPhoneColumn" prefWidth="150" text="Phone" />
+                                </columns>
+                            </TableView>
                         </VBox>
-                     </children>
-                  </VBox>
-               </content>
-            </Tab>
-         </tabs>
-      </TabPane>
-   </center>
+                    </content>
+                </Tab>
+                
+                <Tab text="📋 Orders">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <TableView fx:id="allOrdersTable" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="allOrderIdColumn" prefWidth="80" text="Order #" />
+                                    <TableColumn fx:id="allCustomerColumn" prefWidth="140" text="Customer" />
+                                    <TableColumn fx:id="allCarrierColumn" prefWidth="140" text="Carrier" />
+                                    <TableColumn fx:id="allStatusColumn" prefWidth="110" text="Status" />
+                                    <TableColumn fx:id="allTotalColumn" prefWidth="110" text="Total" />
+                                    <TableColumn fx:id="allOrderDateColumn" prefWidth="140" text="Ordered" />
+                                    <TableColumn fx:id="allDeliveryDateColumn" prefWidth="140" text="Delivered" />
+                                </columns>
+                            </TableView>
+                        </VBox>
+                    </content>
+                </Tab>
+                
+                <Tab text="💬 Messages">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <TableView fx:id="messagesTable" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="messageIdColumn" prefWidth="70" text="ID" />
+                                    <TableColumn fx:id="messageCustomerColumn" prefWidth="150" text="From" />
+                                    <TableColumn fx:id="messageSubjectColumn" prefWidth="250" text="Subject" />
+                                    <TableColumn fx:id="messageDateColumn" prefWidth="140" text="Date" />
+                                    <TableColumn fx:id="messageReadColumn" prefWidth="80" text="Status" />
+                                    <TableColumn fx:id="messageActionColumn" prefWidth="150" text="Action" />
+                                </columns>
+                            </TableView>
+                        </VBox>
+                    </content>
+                </Tab>
+                
+                <Tab text="🎫 Coupons">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <HBox spacing="15">
+                                <Button fx:id="createCouponButton" text="🎟️ Create Coupon" onAction="#handleCreateCoupon" styleClass="button-primary" />
+                                <Button fx:id="adjustLoyaltyButton" text="⚙️ Loyalty Settings" onAction="#handleAdjustLoyalty" styleClass="button-secondary" />
+                            </HBox>
+                            
+                            <VBox styleClass="card" spacing="10">
+                                <Label text="🏷️ Active Coupons" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                                <TableView fx:id="couponsTable" prefHeight="200">
+                                    <columns>
+                                        <TableColumn fx:id="couponIdColumn" prefWidth="70" text="ID" />
+                                        <TableColumn fx:id="couponCustomerColumn" prefWidth="150" text="Customer" />
+                                        <TableColumn fx:id="couponCodeColumn" prefWidth="150" text="Code" />
+                                        <TableColumn fx:id="couponDiscountColumn" prefWidth="120" text="Discount" />
+                                        <TableColumn fx:id="couponUsedColumn" prefWidth="80" text="Used" />
+                                    </columns>
+                                </TableView>
+                            </VBox>
+                            
+                            <VBox styleClass="card" spacing="10">
+                                <Label text="⭐ Loyalty Program" style="-fx-font-size: 16px; -fx-font-weight: bold;" />
+                                <VBox fx:id="loyaltyStandardsContainer" spacing="10" />
+                            </VBox>
+                        </VBox>
+                    </content>
+                </Tab>
+                
+                <Tab text="⭐ Ratings">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <TableView fx:id="ratingsTable" VBox.vgrow="ALWAYS">
+                                <columns>
+                                    <TableColumn fx:id="ratingIdColumn" prefWidth="70" text="ID" />
+                                    <TableColumn fx:id="ratingCarrierColumn" prefWidth="150" text="Carrier" />
+                                    <TableColumn fx:id="ratingCustomerColumn" prefWidth="150" text="Customer" />
+                                    <TableColumn fx:id="ratingValueColumn" prefWidth="100" text="Rating" />
+                                    <TableColumn fx:id="ratingCommentColumn" prefWidth="300" text="Comment" />
+                                    <TableColumn fx:id="ratingDateColumn" prefWidth="140" text="Date" />
+                                </columns>
+                            </TableView>
+                        </VBox>
+                    </content>
+                </Tab>
+                
+                <Tab text="📈 Reports">
+                    <content>
+                        <VBox spacing="15" style="-fx-padding: 20;">
+                            <HBox styleClass="card" spacing="15" style="-fx-padding: 15;">
+                                <Button fx:id="profitReportButton" text="💰 Revenue" onAction="#handleProfitReport" styleClass="button-primary" />
+                                <Button fx:id="deliveredOrdersButton" text="📊 Orders" onAction="#handleDeliveredOrders" styleClass="button-secondary" />
+                                <Button fx:id="carrierPerformanceButton" text="🚚 Carriers" onAction="#handleCarrierPerformance" styleClass="button-secondary" />
+                            </HBox>
+                            
+                            <VBox fx:id="reportsContainer" VBox.vgrow="ALWAYS" styleClass="card" spacing="15">
+                                <Label text="Select a report to view" style="-fx-font-size: 16px; -fx-text-fill: #565959;" />
+                            </VBox>
+                        </VBox>
+                    </content>
+                </Tab>
+            </tabs>
+        </TabPane>
+    </center>
+    
+    <bottom>
+        <HBox styleClass="footer" alignment="CENTER">
+            <Label text="© 2026 Group17 GreenGrocer - Seller Central" />
+        </HBox>
+    </bottom>
 </BorderPane>
-
-
-
-
-
-
-
-

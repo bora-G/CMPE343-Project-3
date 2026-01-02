@@ -12,14 +12,14 @@ import javafx.stage.Stage;
  * Entry point for the JavaFX application.
  */
 public class Main extends Application {
-    
+
     @Override
     public void start(Stage primaryStage) throws Exception {
         // Test database connection and run migrations
         DatabaseAdapter dbAdapter = DatabaseAdapter.getInstance();
         if (!dbAdapter.testConnection()) {
             System.err.println("Warning: Database connection test failed. " +
-                "Please ensure MySQL is running and the database is created.");
+                    "Please ensure MySQL is running and the database is created.");
             System.err.println("You may need to:");
             System.err.println("1. Create the database: CREATE DATABASE greengrocer_db;");
             System.err.println("2. Run the schema.sql file to create tables and insert sample data");
@@ -27,28 +27,32 @@ public class Main extends Application {
         } else {
             System.out.println("Database connection successful. Migrations completed if needed.");
         }
-        
+
         // Load login view
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
         Parent root = loader.load();
-        
+
         Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-        
+
         primaryStage.setTitle("Local Greengrocer - Login");
         primaryStage.setScene(scene);
-        primaryStage.setMaximized(true);
+
+        // Set initial size to 960x540 as per project requirements
+        primaryStage.setWidth(960);
+        primaryStage.setHeight(540);
+        primaryStage.centerOnScreen();
         primaryStage.setResizable(true);
         primaryStage.show();
     }
-    
+
     @Override
     public void stop() throws Exception {
         // Close database connection on application exit
         DatabaseAdapter.getInstance().closeConnection();
         super.stop();
     }
-    
+
     /**
      * Main method to launch the application
      */
@@ -56,9 +60,3 @@ public class Main extends Application {
         launch(args);
     }
 }
-
-
-
-
-
-
