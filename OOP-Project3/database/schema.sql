@@ -34,8 +34,6 @@ CREATE TABLE ProductInfo (
     threshold DECIMAL(10, 2) NOT NULL DEFAULT 5.0,
     description TEXT,
     imagePath VARCHAR(255),
-    productImage LONGBLOB,
-    imageMimeType VARCHAR(50),
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -55,7 +53,6 @@ CREATE TABLE OrderInfo (
     status ENUM('Pending', 'Assigned', 'InTransit', 'Delivered', 'Cancelled') DEFAULT 'Pending',
     deliveryAddress TEXT NOT NULL,
     invoicePath VARCHAR(255),
-    invoiceContent LONGBLOB,
     couponCode VARCHAR(20),
     canCancelUntil TIMESTAMP,
     FOREIGN KEY (customerId) REFERENCES UserInfo(userId) ON DELETE CASCADE,
@@ -115,33 +112,34 @@ CREATE TABLE Message (
 );
 
 -- Insert sample data for UserInfo (at least 25 rows)
+-- Passwords are hashed using SHA-256 (original passwords: owner123, customer123, carrier123)
 INSERT INTO UserInfo (username, password, role, fullName, email, phone, address) VALUES
-('owner1', 'owner123', 'Owner', 'John Owner', 'owner1@greengrocer.com', '555-0001', '123 Main St'),
-('customer1', 'customer123', 'Customer', 'Alice Customer', 'alice@email.com', '555-1001', '456 Oak Ave'),
-('customer2', 'customer123', 'Customer', 'Bob Customer', 'bob@email.com', '555-1002', '789 Pine Rd'),
-('customer3', 'customer123', 'Customer', 'Charlie Customer', 'charlie@email.com', '555-1003', '321 Elm St'),
-('customer4', 'customer123', 'Customer', 'Diana Customer', 'diana@email.com', '555-1004', '654 Maple Dr'),
-('customer5', 'customer123', 'Customer', 'Eve Customer', 'eve@email.com', '555-1005', '987 Cedar Ln'),
-('customer6', 'customer123', 'Customer', 'Frank Customer', 'frank@email.com', '555-1006', '147 Birch Way'),
-('customer7', 'customer123', 'Customer', 'Grace Customer', 'grace@email.com', '555-1007', '258 Spruce Ct'),
-('customer8', 'customer123', 'Customer', 'Henry Customer', 'henry@email.com', '555-1008', '369 Willow Pl'),
-('customer9', 'customer123', 'Customer', 'Ivy Customer', 'ivy@email.com', '555-1009', '741 Aspen Blvd'),
-('customer10', 'customer123', 'Customer', 'Jack Customer', 'jack@email.com', '555-1010', '852 Poplar St'),
-('carrier1', 'carrier123', 'Carrier', 'Tom Carrier', 'tom@carrier.com', '555-2001', '111 Delivery St'),
-('carrier2', 'carrier123', 'Carrier', 'Sarah Carrier', 'sarah@carrier.com', '555-2002', '222 Transport Ave'),
-('carrier3', 'carrier123', 'Carrier', 'Mike Carrier', 'mike@carrier.com', '555-2003', '333 Logistics Rd'),
-('carrier4', 'carrier123', 'Carrier', 'Lisa Carrier', 'lisa@carrier.com', '555-2004', '444 Shipping Dr'),
-('carrier5', 'carrier123', 'Carrier', 'David Carrier', 'david@carrier.com', '555-2005', '555 Express Ln'),
-('carrier6', 'carrier123', 'Carrier', 'Emma Carrier', 'emma@carrier.com', '555-2006', '666 Fast Way'),
-('carrier7', 'carrier123', 'Carrier', 'Noah Carrier', 'noah@carrier.com', '555-2007', '777 Quick Ct'),
-('carrier8', 'carrier123', 'Carrier', 'Olivia Carrier', 'olivia@carrier.com', '555-2008', '888 Speed Pl'),
-('carrier9', 'carrier123', 'Carrier', 'Liam Carrier', 'liam@carrier.com', '555-2009', '999 Rapid Blvd'),
-('carrier10', 'carrier123', 'Carrier', 'Ava Carrier', 'ava@carrier.com', '555-2010', '101 Swift St'),
-('customer11', 'customer123', 'Customer', 'Kevin Customer', 'kevin@email.com', '555-1011', '963 Fir Ave'),
-('customer12', 'customer123', 'Customer', 'Laura Customer', 'laura@email.com', '555-1012', '159 Hemlock Rd'),
-('customer13', 'customer123', 'Customer', 'Mark Customer', 'mark@email.com', '555-1013', '357 Juniper Dr'),
-('customer14', 'customer123', 'Customer', 'Nancy Customer', 'nancy@email.com', '555-1014', '468 Cypress Ln'),
-('customer15', 'customer123', 'Customer', 'Oscar Customer', 'oscar@email.com', '555-1015', '579 Redwood Way');
+('owner1', '43a0d17178a9d26c9e0fe9a74b0b45e38d32f27aed887a008a54bf6e033bf7b9', 'Owner', 'John Owner', 'owner1@greengrocer.com', '555-0001', '123 Main St'),
+('customer1', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Alice Customer', 'alice@email.com', '555-1001', '456 Oak Ave'),
+('customer2', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Bob Customer', 'customer2@email.com', '555-1002', '789 Pine Rd'),
+('customer3', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Charlie Customer', 'customer3@email.com', '555-1003', '321 Elm St'),
+('customer4', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Diana Customer', 'customer4@email.com', '555-1004', '654 Maple Dr'),
+('customer5', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Eve Customer', 'customer5@email.com', '555-1005', '987 Cedar Ln'),
+('customer6', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Frank Customer', 'customer6@email.com', '555-1006', '147 Birch Way'),
+('customer7', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Grace Customer', 'customer7@email.com', '555-1007', '258 Spruce Ct'),
+('customer8', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Henry Customer', 'customer8@email.com', '555-1008', '369 Willow Pl'),
+('customer9', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Ivy Customer', 'customer9@email.com', '555-1009', '741 Aspen Blvd'),
+('customer10', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Jack Customer', 'customer10@email.com', '555-1010', '852 Poplar St'),
+('carrier1', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Tom Carrier', 'carrier1@carrier.com', '555-2001', '111 Delivery St'),
+('carrier2', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Sarah Carrier', 'carrier2@carrier.com', '555-2002', '222 Transport Ave'),
+('carrier3', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Mike Carrier', 'carrier3@carrier.com', '555-2003', '333 Logistics Rd'),
+('carrier4', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Lisa Carrier', 'carrier4@carrier.com', '555-2004', '444 Shipping Dr'),
+('carrier5', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'David Carrier', 'carrier5@carrier.com', '555-2005', '555 Express Ln'),
+('carrier6', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Emma Carrier', 'carrier6@carrier.com', '555-2006', '666 Fast Way'),
+('carrier7', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Noah Carrier', 'carrier7@carrier.com', '555-2007', '777 Quick Ct'),
+('carrier8', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Olivia Carrier', 'carrier8@carrier.com', '555-2008', '888 Speed Pl'),
+('carrier9', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Liam Carrier', 'carrier9@carrier.com', '555-2009', '999 Rapid Blvd'),
+('carrier10', '4c612d9736a44808cbb5589c2412e81822612ed7f0e22fdb341366a8d58983a6', 'Carrier', 'Ava Carrier', 'carrier10@carrier.com', '555-2010', '101 Swift St'),
+('customer11', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Kevin Customer', 'customer11@email.com', '555-1011', '963 Fir Ave'),
+('customer12', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Laura Customer', 'customer12@email.com', '555-1012', '159 Hemlock Rd'),
+('customer13', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Mark Customer', 'customer13@email.com', '555-1013', '357 Juniper Dr'),
+('customer14', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Nancy Customer', 'customer14@email.com', '555-1014', '468 Cypress Ln'),
+('customer15', 'b041c0aeb35bb0fa4aa668ca5a920b590196fdaf9a00eb852c9b7f4d123cc6d6', 'Customer', 'Oscar Customer', 'customer15@email.com', '555-1015', '579 Redwood Way');
 
 -- Insert sample data for ProductInfo (at least 25 rows)
 INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description) VALUES
@@ -175,59 +173,32 @@ INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold,
 ('Dill', 'Herb', 21.00, 22.0, 2.0, 'Fresh dill');
 
 -- Insert sample data for OrderInfo (at least 25 rows)
--- Note: subtotal, vatAmount (20%), discountAmount, loyaltyDiscount, and totalCost are calculated
--- VAT = 20% of subtotal, Total = subtotal + VAT - discounts
-INSERT INTO OrderInfo (customerId, carrierId, orderDate, deliveryDate, subtotal, vatAmount, discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress) VALUES
--- Order 1: subtotal=44.50, vat=8.90, total=53.40
-(2, 12, '2024-01-01 10:00:00', '2024-01-02 14:00:00', 44.50, 8.90, 0.00, 0.00, 53.40, 'Delivered', '456 Oak Ave'),
--- Order 2: subtotal=32.50, vat=6.50, total=39.00
-(3, 13, '2024-01-02 11:00:00', '2024-01-03 15:00:00', 32.50, 6.50, 0.00, 0.00, 39.00, 'Delivered', '789 Pine Rd'),
--- Order 3: subtotal=67.50, vat=13.50, total=81.00
-(4, 14, '2024-01-03 09:00:00', '2024-01-04 13:00:00', 67.50, 13.50, 0.00, 0.00, 81.00, 'Delivered', '321 Elm St'),
--- Order 4: subtotal=28.50, vat=5.70, total=34.20
-(5, 15, '2024-01-04 14:00:00', '2024-01-05 16:00:00', 28.50, 5.70, 0.00, 0.00, 34.20, 'Delivered', '654 Maple Dr'),
--- Order 5: subtotal=58.10, vat=11.62, total=69.72
-(6, 16, '2024-01-05 10:30:00', '2024-01-06 14:30:00', 58.10, 11.62, 0.00, 0.00, 69.72, 'Delivered', '987 Cedar Ln'),
--- Order 6: subtotal=42.10, vat=8.42, total=50.52
-(7, 17, '2024-01-06 08:00:00', '2024-01-07 12:00:00', 42.10, 8.42, 0.00, 0.00, 50.52, 'Delivered', '147 Birch Way'),
--- Order 7: subtotal=76.20, vat=15.24, total=91.44
-(8, 18, '2024-01-07 15:00:00', '2024-01-08 17:00:00', 76.20, 15.24, 0.00, 0.00, 91.44, 'Delivered', '258 Spruce Ct'),
--- Order 8: subtotal=42.25, vat=8.45, total=50.70
-(9, 19, '2024-01-08 11:00:00', '2024-01-09 15:00:00', 42.25, 8.45, 0.00, 0.00, 50.70, 'Delivered', '369 Willow Pl'),
--- Order 9: subtotal=68.00, vat=13.60, total=81.60
-(10, 20, '2024-01-09 13:00:00', '2024-01-10 16:00:00', 68.00, 13.60, 0.00, 0.00, 81.60, 'Delivered', '741 Aspen Blvd'),
--- Order 10: subtotal=68.55, vat=13.71, total=82.26
-(11, 12, '2024-01-10 09:30:00', '2024-01-11 13:30:00', 68.55, 13.71, 0.00, 0.00, 82.26, 'Delivered', '852 Poplar St'),
--- Order 11: subtotal=38.50, vat=7.70, total=46.20
-(2, 13, '2024-01-11 10:00:00', '2024-01-12 14:00:00', 38.50, 7.70, 0.00, 0.00, 46.20, 'Delivered', '456 Oak Ave'),
--- Order 12: subtotal=60.25, vat=12.05, total=72.30
-(3, 14, '2024-01-12 14:00:00', '2024-01-13 18:00:00', 60.25, 12.05, 0.00, 0.00, 72.30, 'Delivered', '789 Pine Rd'),
--- Order 13: subtotal=30.40, vat=6.08, total=36.48
-(4, 15, '2024-01-13 08:00:00', '2024-01-14 12:00:00', 30.40, 6.08, 0.00, 0.00, 36.48, 'Delivered', '321 Elm St'),
--- Order 14: subtotal=79.30, vat=15.86, total=95.16
-(5, 16, '2024-01-14 12:00:00', '2024-01-15 16:00:00', 79.30, 15.86, 0.00, 0.00, 95.16, 'Delivered', '654 Maple Dr'),
--- Order 15: subtotal=45.00, vat=9.00, total=54.00
-(6, 17, '2024-01-15 10:00:00', '2024-01-16 14:00:00', 45.00, 9.00, 0.00, 0.00, 54.00, 'Delivered', '987 Cedar Ln'),
--- Order 16: subtotal=56.00, vat=11.20, total=67.20
-(7, 18, '2024-01-16 11:00:00', NULL, 56.00, 11.20, 0.00, 0.00, 67.20, 'Assigned', '147 Birch Way'),
--- Order 17: subtotal=34.30, vat=6.86, total=41.16
-(8, 19, '2024-01-17 09:00:00', NULL, 34.30, 6.86, 0.00, 0.00, 41.16, 'Assigned', '258 Spruce Ct'),
--- Order 18: subtotal=54.50, vat=10.90, total=65.40
-(9, 20, '2024-01-18 13:00:00', NULL, 54.50, 10.90, 0.00, 0.00, 65.40, 'InTransit', '369 Willow Pl'),
--- Order 19: subtotal=68.25, vat=13.65, total=81.90
-(10, 12, '2024-01-19 10:00:00', NULL, 68.25, 13.65, 0.00, 0.00, 81.90, 'InTransit', '741 Aspen Blvd'),
--- Order 20: subtotal=38.50, vat=7.70, total=46.20
-(11, 13, '2024-01-20 14:00:00', NULL, 38.50, 7.70, 0.00, 0.00, 46.20, 'Pending', '852 Poplar St'),
--- Order 21: subtotal=55.20, vat=11.04, total=66.24
-(2, NULL, '2024-01-21 08:00:00', NULL, 55.20, 11.04, 0.00, 0.00, 66.24, 'Pending', '456 Oak Ave'),
--- Order 22: subtotal=26.65, vat=5.33, total=31.98
-(3, NULL, '2024-01-22 12:00:00', NULL, 26.65, 5.33, 0.00, 0.00, 31.98, 'Pending', '789 Pine Rd'),
--- Order 23: subtotal=75.95, vat=15.19, total=91.14
-(4, NULL, '2024-01-23 10:00:00', NULL, 75.95, 15.19, 0.00, 0.00, 91.14, 'Pending', '321 Elm St'),
--- Order 24: subtotal=47.65, vat=9.53, total=57.18
-(5, NULL, '2024-01-24 11:00:00', NULL, 47.65, 9.53, 0.00, 0.00, 57.18, 'Pending', '654 Maple Dr'),
--- Order 25: subtotal=54.75, vat=10.95, total=65.70
-(6, NULL, '2024-01-25 09:00:00', NULL, 54.75, 10.95, 0.00, 0.00, 65.70, 'Pending', '987 Cedar Ln');
+INSERT INTO OrderInfo (customerId, carrierId, orderDate, deliveryDate, totalCost, status, deliveryAddress) VALUES
+(2, 12, '2024-01-01 10:00:00', '2024-01-02 14:00:00', 45.50, 'Delivered', '456 Oak Ave'),
+(3, 13, '2024-01-02 11:00:00', '2024-01-03 15:00:00', 32.00, 'Delivered', '789 Pine Rd'),
+(4, 14, '2024-01-03 09:00:00', '2024-01-04 13:00:00', 67.25, 'Delivered', '321 Elm St'),
+(5, 15, '2024-01-04 14:00:00', '2024-01-05 16:00:00', 28.50, 'Delivered', '654 Maple Dr'),
+(6, 16, '2024-01-05 10:30:00', '2024-01-06 14:30:00', 55.75, 'Delivered', '987 Cedar Ln'),
+(7, 17, '2024-01-06 08:00:00', '2024-01-07 12:00:00', 41.00, 'Delivered', '147 Birch Way'),
+(8, 18, '2024-01-07 15:00:00', '2024-01-08 17:00:00', 73.50, 'Delivered', '258 Spruce Ct'),
+(9, 19, '2024-01-08 11:00:00', '2024-01-09 15:00:00', 36.25, 'Delivered', '369 Willow Pl'),
+(10, 20, '2024-01-09 13:00:00', '2024-01-10 16:00:00', 49.00, 'Delivered', '741 Aspen Blvd'),
+(11, 12, '2024-01-10 09:30:00', '2024-01-11 13:30:00', 62.75, 'Delivered', '852 Poplar St'),
+(2, 13, '2024-01-11 10:00:00', '2024-01-12 14:00:00', 38.50, 'Delivered', '456 Oak Ave'),
+(3, 14, '2024-01-12 14:00:00', '2024-01-13 18:00:00', 54.00, 'Delivered', '789 Pine Rd'),
+(4, 15, '2024-01-13 08:00:00', '2024-01-14 12:00:00', 29.75, 'Delivered', '321 Elm St'),
+(5, 16, '2024-01-14 12:00:00', '2024-01-15 16:00:00', 71.25, 'Delivered', '654 Maple Dr'),
+(6, 17, '2024-01-15 10:00:00', '2024-01-16 14:00:00', 43.50, 'Delivered', '987 Cedar Ln'),
+(7, 18, '2024-01-16 11:00:00', NULL, 56.00, 'Assigned', '147 Birch Way'),
+(8, 19, '2024-01-17 09:00:00', NULL, 34.75, 'Assigned', '258 Spruce Ct'),
+(9, 20, '2024-01-18 13:00:00', NULL, 48.50, 'InTransit', '369 Willow Pl'),
+(10, 12, '2024-01-19 10:00:00', NULL, 65.25, 'InTransit', '741 Aspen Blvd'),
+(11, 13, '2024-01-20 14:00:00', NULL, 39.00, 'Pending', '852 Poplar St'),
+(2, NULL, '2024-01-21 08:00:00', NULL, 52.75, 'Pending', '456 Oak Ave'),
+(3, NULL, '2024-01-22 12:00:00', NULL, 27.50, 'Pending', '789 Pine Rd'),
+(4, NULL, '2024-01-23 10:00:00', NULL, 61.00, 'Pending', '321 Elm St'),
+(5, NULL, '2024-01-24 11:00:00', NULL, 44.25, 'Pending', '654 Maple Dr'),
+(6, NULL, '2024-01-25 09:00:00', NULL, 58.50, 'Pending', '987 Cedar Ln');
 
 -- Insert sample data for OrderItem (at least 25 rows, matching orders)
 INSERT INTO OrderItem (orderId, productId, quantity, unitPrice, subtotal) VALUES
