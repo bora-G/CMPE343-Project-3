@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.LoginController" stylesheets="@../css/modern-theme.css">
+   <center>
+      <VBox alignment="CENTER" spacing="20.0" style="-fx-background-color: #eaeded;">
+         <padding>
+            <Insets bottom="20.0" left="20.0" right="20.0" top="20.0" />
+         </padding>
+         <children>
+            <Label text="GreenGrocer" textFill="#000000">
+               <font>
+                  <Font name="System Bold" size="28.0" />
+               </font>
+            </Label>
+            <VBox spacing="15.0" styleClass="card-container" maxWidth="350">
+               <padding>
+                  <Insets bottom="25.0" left="25.0" right="25.0" top="25.0" />
+               </padding>
+               <children>
+                  <Label text="Sign-In" style="-fx-font-size: 24px; -fx-font-weight: bold;"/>
+                  
+                  <Label text="Username" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                  <TextField fx:id="usernameField" promptText="" styleClass="search-field"/>
+                  
+                  <Label text="Password" style="-fx-font-weight: bold; -fx-font-size: 13px;"/>
+                  <PasswordField fx:id="passwordField" promptText="" styleClass="search-field"/>
+                  
+                  <Label fx:id="errorLabel" textFill="#e74c3c" visible="false" wrapText="true"/>
+                  
+                  <Button fx:id="loginButton" mnemonicParsing="false" onAction="#handleLogin" text="Sign In" styleClass="primary-button" maxWidth="Infinity"/>
+                  
+                  <Label text="New to GreenGrocer?" style="-fx-padding: 10 0 0 0; -fx-alignment: center;"/>
+                  <Button fx:id="registerButton" mnemonicParsing="false" onAction="#handleRegister" text="Create your GreenGrocer account" styleClass="secondary-button" maxWidth="Infinity"/>
+               </children>
+            </VBox>
+         </children>
+      </VBox>
+   </center>
+</BorderPane>
+
+
+
+
+
+
+
+

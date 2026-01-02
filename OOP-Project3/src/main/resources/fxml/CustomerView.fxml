@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.text.Font?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.image.Image?>
+
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.CustomerController" stylesheets="@../css/modern-theme.css" styleClass="root">
+   <top>
+      <VBox spacing="0">
+         <!-- Main Header -->
+         <HBox alignment="CENTER_LEFT" spacing="30.0" styleClass="header-bar" style="-fx-padding: 10 20;">
+            <children>
+               <!-- Logo / Brand -->
+               <Label text="GreenGrocer" styleClass="header-label">
+                   <font>
+                       <Font name="System Bold" size="24.0" />
+                   </font>
+               </Label>
+               
+               <!-- Search Bar (Flexible width) -->
+               <HBox alignment="CENTER" HBox.hgrow="ALWAYS" maxWidth="800">
+                   <TextField fx:id="searchField" promptText="Search for products..." HBox.hgrow="ALWAYS" styleClass="search-field" onAction="#handleSearch"/>
+                   <Button fx:id="searchButton" text="Search" onAction="#handleSearch" styleClass="search-button"/>
+               </HBox>
+
+               <!-- Right Side Actions -->
+               <HBox alignment="CENTER_RIGHT" spacing="15.0">
+                   <MenuButton fx:id="accountMenuButton" text="Account &amp; Lists" styleClass="header-button" style="-fx-font-weight: bold;">
+                       <items>
+                           <MenuItem text="Your Account" onAction="#handleEditProfile"/>
+                           <MenuItem text="Your Orders" onAction="#handleViewOrderHistory"/>
+                           <MenuItem text="Your Messages" onAction="#handleMessageOwner"/>
+                       </items>
+                   </MenuButton>
+                   
+                   <Button fx:id="orderHistoryButton" text="Returns &amp; Orders" styleClass="header-button" onAction="#handleViewOrderHistory"/>
+                   
+                   <Button fx:id="cartButton" text="Cart" styleClass="header-button" onAction="#handleViewCart">
+                       <graphic>
+                           <!-- Simple text cart icon for now, could be an image -->
+                           <Label text="🛒" textFill="white" style="-fx-font-size: 20px;"/>
+                       </graphic>
+                   </Button>
+                   
+                   <MenuButton text="More" styleClass="header-button">
+                       <items>
+                           <MenuItem fx:id="profileButton" text="Edit Profile" onAction="#handleEditProfile"/>
+                           <MenuItem fx:id="couponsButton" text="My Coupons" onAction="#handleViewCoupons"/>
+                           <MenuItem fx:id="messageOwnerButton" text="Message Owner" onAction="#handleMessageOwner"/>
+                           <MenuItem fx:id="refreshButton" text="Refresh Page" onAction="#handleRefresh"/>
+                           <MenuItem fx:id="logoutButton" text="Sign Out" onAction="#handleLogout"/>
+                       </items>
+                   </MenuButton>
+               </HBox>
+            </children>
+         </HBox>
+         
+         <!-- Sub Header (Categories/Quick Links) can go here if needed -->
+      </VBox>
+   </top>
+   
+   <center>
+      <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" style="-fx-background-color: transparent; -fx-background: transparent;">
+         <content>
+            <VBox spacing="20.0" style="-fx-padding: 20;">
+               <children>
+                  <!-- Hero Carousel -->
+                  <StackPane fx:id="carouselContainer" prefHeight="300.0" styleClass="hero-carousel" />
+                  <HBox fx:id="carouselDots" alignment="CENTER" spacing="10.0" />
+                  
+                  <!-- Products Container (will contain TitledPanes with FlowPanes) -->
+                  <VBox fx:id="productsContainer" spacing="20.0" />
+               </children>
+            </VBox>
+         </content>
+      </ScrollPane>
+   </center>
+</BorderPane>
