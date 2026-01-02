@@ -41,7 +41,7 @@
                               <TableColumn fx:id="selectColumn" prefWidth="180.0" text="Actions" />
                            </columns>
                         </TableView>
-                        <HBox spacing="20.0">
+                        <HBox spacing="10.0">
                            <children>
                               <Button fx:id="selectMultipleButton" mnemonicParsing="false" onAction="#handleSelectMultipleOrders" text="Select Multiple" />
                               <Region HBox.hgrow="ALWAYS" />

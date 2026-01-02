@@ -213,9 +213,9 @@ public class OwnerService {
     /**
      * Create a coupon for a customer
      */
-    public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent) {
+    public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent, String couponName) {
         try {
-            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent);
+            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent, couponName);
         } catch (SQLException e) {
             System.err.println("Error creating coupon: " + e.getMessage());
             e.printStackTrace();

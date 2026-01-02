@@ -139,8 +139,22 @@ public class ProductRepository {
      * Create a new product
      */
     public boolean create(Product product) throws SQLException {
-        String sql = "INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description, imagePath) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        // Check if imageUrl column exists
+        String sql;
+        boolean hasImageColumns = false;
+        try {
+            try (Connection conn = dbAdapter.getConnection();
+                 Statement checkStmt = conn.createStatement()) {
+                checkStmt.executeQuery("SELECT imageUrl FROM ProductInfo LIMIT 1");
+                hasImageColumns = true;
+                sql = "INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description, imagePath, imageUrl, imageData) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+            }
+        } catch (SQLException e) {
+            hasImageColumns = false;
+            sql = "INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description, imagePath) " +
+                 "VALUES (?, ?, ?, ?, ?, ?, ?)";
+        }
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -150,8 +164,17 @@ public class ProductRepository {
             stmt.setBigDecimal(3, product.getPricePerKg());
             stmt.setBigDecimal(4, product.getStock());
             stmt.setBigDecimal(5, product.getThreshold());
-            stmt.setString(6, product.getDescription());
-            stmt.setString(7, product.getImagePath());
+            stmt.setString(6, product.getDescription() != null ? product.getDescription() : "");
+            stmt.setString(7, product.getImagePath() != null ? product.getImagePath() : "");
+            
+            if (hasImageColumns) {
+                stmt.setString(8, product.getImageUrl() != null ? product.getImageUrl() : "");
+                if (product.getImageData() != null) {
+                    stmt.setBytes(9, product.getImageData());
+                } else {
+                    stmt.setNull(9, Types.BLOB);
+                }
+            }
             
             int rowsAffected = stmt.executeUpdate();
             
@@ -171,8 +194,22 @@ public class ProductRepository {
      * Update product information
      */
     public boolean update(Product product) throws SQLException {
-        String sql = "UPDATE ProductInfo SET productName = ?, productType = ?, pricePerKg = ?, " +
-                     "stock = ?, threshold = ?, description = ?, imagePath = ? WHERE productId = ?";
+        // Check if imageUrl column exists, use appropriate SQL
+        String sql;
+        try {
+            // Try to check if column exists
+            try (Connection conn = dbAdapter.getConnection();
+                 Statement checkStmt = conn.createStatement()) {
+                checkStmt.executeQuery("SELECT imageUrl FROM ProductInfo LIMIT 1");
+                // Column exists, use full SQL
+                sql = "UPDATE ProductInfo SET productName = ?, productType = ?, pricePerKg = ?, " +
+                     "stock = ?, threshold = ?, description = ?, imagePath = ?, imageUrl = ?, imageData = ? WHERE productId = ?";
+            }
+        } catch (SQLException e) {
+            // Column doesn't exist, use SQL without imageUrl/imageData
+            sql = "UPDATE ProductInfo SET productName = ?, productType = ?, pricePerKg = ?, " +
+                 "stock = ?, threshold = ?, description = ?, imagePath = ? WHERE productId = ?";
+        }
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -182,9 +219,21 @@ public class ProductRepository {
             stmt.setBigDecimal(3, product.getPricePerKg());
             stmt.setBigDecimal(4, product.getStock());
             stmt.setBigDecimal(5, product.getThreshold());
-            stmt.setString(6, product.getDescription());
-            stmt.setString(7, product.getImagePath());
-            stmt.setInt(8, product.getProductId());
+            stmt.setString(6, product.getDescription() != null ? product.getDescription() : "");
+            stmt.setString(7, product.getImagePath() != null ? product.getImagePath() : "");
+            
+            // Only set imageUrl and imageData if column exists
+            if (sql.contains("imageUrl")) {
+                stmt.setString(8, product.getImageUrl() != null ? product.getImageUrl() : "");
+                if (product.getImageData() != null) {
+                    stmt.setBytes(9, product.getImageData());
+                } else {
+                    stmt.setNull(9, Types.BLOB);
+                }
+                stmt.setInt(10, product.getProductId());
+            } else {
+                stmt.setInt(8, product.getProductId());
+            }
             
             return stmt.executeUpdate() > 0;
         }
@@ -233,6 +282,20 @@ public class ProductRepository {
         product.setThreshold(rs.getBigDecimal("threshold"));
         product.setDescription(rs.getString("description"));
         product.setImagePath(rs.getString("imagePath"));
+        
+        // Handle new fields (with backward compatibility)
+        try {
+            product.setImageUrl(rs.getString("imageUrl"));
+        } catch (SQLException e) {
+            product.setImageUrl(null);
+        }
+        
+        try {
+            product.setImageData(rs.getBytes("imageData"));
+        } catch (SQLException e) {
+            product.setImageData(null);
+        }
+        
         return product;
     }
 }

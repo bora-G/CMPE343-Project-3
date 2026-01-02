@@ -5,14 +5,18 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.OwnerController" stylesheets="@../css/modern-theme.css">
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.OwnerController">
    <top>
-      <HBox alignment="CENTER_LEFT" spacing="10.0" styleClass="header-bar">
+      <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #9b59b6; -fx-padding: 15;">
          <children>
-            <Label text="Owner Dashboard" styleClass="header-label"/>
+            <Label text="Owner Dashboard" textFill="WHITE">
+               <font>
+                  <Font name="System Bold" size="20.0" />
+               </font>
+            </Label>
             <Region HBox.hgrow="ALWAYS" />
-            <Label fx:id="welcomeLabel" text="Welcome, Owner" textFill="WHITE" style="-fx-font-weight: bold;"/>
-            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#handleLogout" text="Logout" styleClass="header-button"/>
+            <Label fx:id="welcomeLabel" text="Welcome, Owner" textFill="WHITE" />
+            <Button fx:id="logoutButton" mnemonicParsing="false" onAction="#handleLogout" text="Logout" />
          </children>
       </HBox>
    </top>
@@ -30,6 +34,7 @@
                            <children>
                               <Button fx:id="addProductButton" mnemonicParsing="false" onAction="#handleAddProduct" text="Add Product" />
                               <Button fx:id="updateProductButton" mnemonicParsing="false" onAction="#handleUpdateProduct" text="Update Product" />
+                              <Button fx:id="applyDiscountButton" mnemonicParsing="false" onAction="#handleApplyDiscount" text="Apply Discount" />
                               <Button fx:id="deleteProductButton" mnemonicParsing="false" onAction="#handleDeleteProduct" text="Delete Product" />
                               <Region HBox.hgrow="ALWAYS" />
                            </children>

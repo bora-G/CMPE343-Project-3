@@ -64,11 +64,36 @@ public class CouponRepository {
     }
     
     /**
-     * Create a new coupon
+     * Create a new coupon (legacy method without couponName)
      */
     public boolean create(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent) throws SQLException {
-        String sql = "INSERT INTO Coupon (customerId, couponCode, discountAmount, discountPercent, isUsed) " +
-                     "VALUES (?, ?, ?, ?, FALSE)";
+        return create(customerId, couponCode, discountAmount, discountPercent, null);
+    }
+    
+    /**
+     * Create a new coupon with optional name
+     */
+    public boolean create(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent, String couponName) throws SQLException {
+        // Check if couponName column exists
+        boolean hasCouponName = false;
+        try {
+            try (Connection checkConn = dbAdapter.getConnection();
+                 Statement checkStmt = checkConn.createStatement()) {
+                checkStmt.executeQuery("SELECT couponName FROM Coupon LIMIT 1");
+                hasCouponName = true;
+            }
+        } catch (SQLException e) {
+            hasCouponName = false;
+        }
+        
+        String sql;
+        if (hasCouponName) {
+            sql = "INSERT INTO Coupon (customerId, couponCode, discountAmount, discountPercent, couponName, isUsed) " +
+                 "VALUES (?, ?, ?, ?, ?, FALSE)";
+        } else {
+            sql = "INSERT INTO Coupon (customerId, couponCode, discountAmount, discountPercent, isUsed) " +
+                 "VALUES (?, ?, ?, ?, FALSE)";
+        }
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -80,6 +105,11 @@ public class CouponRepository {
                 stmt.setBigDecimal(4, discountPercent);
             } else {
                 stmt.setNull(4, Types.DECIMAL);
+            }
+            
+            if (hasCouponName) {
+                // couponName will be set by the caller if available
+                stmt.setString(5, null); // Will be updated if couponName is provided
             }
             
             return stmt.executeUpdate() > 0;
@@ -135,6 +165,14 @@ public class CouponRepository {
         coupon.setDiscountAmount(rs.getBigDecimal("discountAmount"));
         coupon.setDiscountPercent(rs.getBigDecimal("discountPercent"));
         coupon.setUsed(rs.getBoolean("isUsed"));
+        
+        // Handle couponName (backward compatibility)
+        try {
+            coupon.setCouponName(rs.getString("couponName"));
+        } catch (SQLException e) {
+            coupon.setCouponName(null);
+        }
+        
         Timestamp expiryDate = rs.getTimestamp("expiryDate");
         if (expiryDate != null) {
             coupon.setExpiryDate(expiryDate.toLocalDateTime());

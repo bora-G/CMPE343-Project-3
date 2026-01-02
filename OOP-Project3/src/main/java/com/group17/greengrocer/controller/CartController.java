@@ -105,7 +105,7 @@ public class CartController implements Initializable {
     private String appliedCouponCode = null;
     
     // Business rules
-    private static final BigDecimal MIN_CART_VALUE = new BigDecimal("50.00"); // Minimum 50 TL
+    private static final BigDecimal MIN_CART_VALUE = new BigDecimal("200.00"); // Minimum 200 TL
     private static final BigDecimal VAT_RATE = new BigDecimal("0.20"); // 20% VAT
     
     @Override
@@ -264,9 +264,9 @@ public class CartController implements Initializable {
     private void handleCheckout() {
         errorLabel.setVisible(false);
         
-        // Validate minimum cart value
-        if (subtotal.compareTo(MIN_CART_VALUE) < 0) {
-            showError("Minimum cart value is ₺" + MIN_CART_VALUE + ". Please add more items.");
+        // Validate minimum cart value (200 TL)
+        if (total.compareTo(MIN_CART_VALUE) < 0) {
+            showError("Minimum sepet tutarı ₺200.00'dir. Lütfen sepetinize daha fazla ürün ekleyin.");
             return;
         }
         
@@ -325,12 +325,25 @@ public class CartController implements Initializable {
                         com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
                 }
                 
-                // Generate PDF invoice
-                String invoicePath = orderService.generateInvoicePDF(order);
-                orderService.saveInvoicePath(order.getOrderId(), invoicePath);
-                
-                // Show invoice download option
-                showInvoiceDownload(order.getOrderId(), invoicePath);
+                // Generate PDF invoice and save to database
+                byte[] pdfBytes = orderService.generateInvoicePDF(order);
+                if (pdfBytes != null) {
+                    orderService.saveInvoicePDF(order.getOrderId(), pdfBytes);
+                    // Also save to file for easy access
+                    String invoicePath = "invoices/order_" + order.getOrderId() + ".pdf";
+                    java.io.File dir = new java.io.File("invoices");
+                    if (!dir.exists()) dir.mkdirs();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(invoicePath)) {
+                        fos.write(pdfBytes);
+                    } catch (java.io.IOException e) {
+                        System.err.println("Error saving invoice file: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    orderService.saveInvoicePath(order.getOrderId(), invoicePath);
+                    showInvoiceDownload(order.getOrderId(), invoicePath);
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to generate invoice PDF.");
+                }
                 
                 showAlert(Alert.AlertType.INFORMATION, "Success", 
                     "Order placed successfully! Order ID: " + order.getOrderId());

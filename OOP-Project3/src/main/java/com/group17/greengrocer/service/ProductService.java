@@ -151,9 +151,19 @@ public class ProductService {
      */
     public boolean updateProduct(Product product) {
         try {
+            if (product.getProductId() <= 0) {
+                System.err.println("Error: Invalid product ID: " + product.getProductId());
+                return false;
+            }
             return productRepository.update(product);
         } catch (SQLException e) {
             System.err.println("Error updating product: " + e.getMessage());
+            System.err.println("SQL State: " + e.getSQLState());
+            System.err.println("Error Code: " + e.getErrorCode());
+            e.printStackTrace();
+            return false;
+        } catch (Exception e) {
+            System.err.println("Unexpected error updating product: " + e.getMessage());
             e.printStackTrace();
             return false;
         }

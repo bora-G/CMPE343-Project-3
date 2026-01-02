@@ -93,9 +93,14 @@ public class LoginController {
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
         Parent root = loader.load();
         Scene scene = new Scene(root);
+        scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setScene(scene);
         stage.setTitle("Group17 GreenGrocer");
+        // Set full screen - use both setMaximized and setFullScreen for better compatibility
+        stage.setMaximized(true);
+        stage.setWidth(javafx.stage.Screen.getPrimary().getVisualBounds().getWidth());
+        stage.setHeight(javafx.stage.Screen.getPrimary().getVisualBounds().getHeight());
         stage.show();
     }
     

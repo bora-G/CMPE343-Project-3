@@ -48,8 +48,15 @@ public class CouponService {
      * Create a coupon for a customer (e.g., after purchase)
      */
     public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent) {
+        return createCoupon(customerId, couponCode, discountAmount, discountPercent, null);
+    }
+    
+    /**
+     * Create a coupon for a customer with optional name
+     */
+    public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent, String couponName) {
         try {
-            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent);
+            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent, couponName);
         } catch (SQLException e) {
             System.err.println("Error creating coupon: " + e.getMessage());
             e.printStackTrace();

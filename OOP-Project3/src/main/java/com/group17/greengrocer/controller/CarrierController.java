@@ -290,6 +290,13 @@ public class CarrierController implements Initializable {
      * Handle select order action
      */
     private void handleSelectOrder(Order order) {
+        // Check if delivery date is in the past
+        if (order.getDeliveryDate() != null && order.getDeliveryDate().isBefore(java.time.LocalDateTime.now())) {
+            showAlert(Alert.AlertType.ERROR, "Cannot Accept Order", 
+                "Cannot accept this order because the requested delivery date is in the past.");
+            return;
+        }
+        
         if (orderService.assignOrderToCarrier(order.getOrderId())) {
             showAlert(Alert.AlertType.INFORMATION, "Success", 
                 "Order " + order.getOrderId() + " assigned to you successfully!");
@@ -373,10 +380,22 @@ public class CarrierController implements Initializable {
         }
         
         int successCount = 0;
+        int skippedCount = 0;
         for (Order order : selectedOrders) {
+            // Check if delivery date is in the past
+            if (order.getDeliveryDate() != null && order.getDeliveryDate().isBefore(java.time.LocalDateTime.now())) {
+                skippedCount++;
+                continue;
+            }
+            
             if (orderService.assignOrderToCarrier(order.getOrderId())) {
                 successCount++;
             }
+        }
+        
+        if (skippedCount > 0) {
+            showAlert(Alert.AlertType.WARNING, "Some Orders Skipped", 
+                skippedCount + " order(s) were skipped because their delivery dates are in the past.");
         }
         
         if (successCount > 0) {
@@ -424,14 +443,48 @@ public class CarrierController implements Initializable {
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         
+        // Get OK button and add validation
+        javafx.scene.control.Button okButton = (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+            LocalDate date = datePicker.getValue();
+            Integer hour = hourComboBox.getValue();
+            Integer minute = minuteComboBox.getValue();
+            
+            if (date == null || hour == null || minute == null) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please select date and time.");
+                e.consume();
+                return;
+            }
+            
+            LocalDateTime deliveryDateTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
+            
+            // Check if delivery date is in the past
+            if (deliveryDateTime.isBefore(LocalDateTime.now())) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Date", 
+                    "Delivery date cannot be in the past.");
+                e.consume();
+                return;
+            }
+        });
+        
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                java.time.LocalDate date = datePicker.getValue();
+                LocalDate date = datePicker.getValue();
                 Integer hour = hourComboBox.getValue();
                 Integer minute = minuteComboBox.getValue();
-                if (date != null && hour != null && minute != null) {
-                    return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
+                
+                if (date == null || hour == null || minute == null) {
+                    return null;
                 }
+                
+                LocalDateTime deliveryDateTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
+                
+                // Double check (should not happen due to validation above)
+                if (deliveryDateTime.isBefore(LocalDateTime.now())) {
+                    return null;
+                }
+                
+                return deliveryDateTime;
             }
             return null;
         });
@@ -485,6 +538,7 @@ public class CarrierController implements Initializable {
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Login");
+            stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

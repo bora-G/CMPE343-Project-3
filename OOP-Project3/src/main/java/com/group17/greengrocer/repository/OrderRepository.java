@@ -199,8 +199,8 @@ public class OrderRepository {
      */
     public boolean create(Order order) throws SQLException {
         String sql = "INSERT INTO OrderInfo (customerId, carrierId, orderDate, deliveryDate, subtotal, vatAmount, " +
-                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, couponCode, canCancelUntil) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, invoicePdf, couponCode, canCancelUntil) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -225,11 +225,12 @@ public class OrderRepository {
             stmt.setString(10, order.getStatus());
             stmt.setString(11, order.getDeliveryAddress());
             stmt.setString(12, order.getInvoicePath());
-            stmt.setString(13, order.getCouponCode());
+            stmt.setNull(13, Types.BLOB); // invoicePdf will be set after order creation
+            stmt.setString(14, order.getCouponCode());
             if (order.getCanCancelUntil() != null) {
-                stmt.setTimestamp(14, Timestamp.valueOf(order.getCanCancelUntil()));
+                stmt.setTimestamp(15, Timestamp.valueOf(order.getCanCancelUntil()));
             } else {
-                stmt.setNull(14, Types.TIMESTAMP);
+                stmt.setNull(15, Types.TIMESTAMP);
             }
             
             int rowsAffected = stmt.executeUpdate();
@@ -343,7 +344,47 @@ public class OrderRepository {
     }
     
     /**
-     * Update invoice path for order
+     * Save invoice PDF to database as LONGBLOB
+     */
+    public boolean saveInvoicePDF(int orderId, byte[] pdfBytes) throws SQLException {
+        String sql = "UPDATE OrderInfo SET invoicePdf = ? WHERE orderId = ?";
+        
+        try (Connection conn = dbAdapter.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (pdfBytes != null) {
+                stmt.setBytes(1, pdfBytes);
+            } else {
+                stmt.setNull(1, Types.BLOB);
+            }
+            stmt.setInt(2, orderId);
+            
+            return stmt.executeUpdate() > 0;
+        }
+    }
+    
+    /**
+     * Get invoice PDF from database
+     */
+    public byte[] getInvoicePDF(int orderId) throws SQLException {
+        String sql = "SELECT invoicePdf FROM OrderInfo WHERE orderId = ?";
+        
+        try (Connection conn = dbAdapter.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, orderId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("invoicePdf");
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Update invoice path for order (legacy support)
      */
     public boolean updateInvoicePath(int orderId, String invoicePath) throws SQLException {
         String sql = "UPDATE OrderInfo SET invoicePath = ? WHERE orderId = ?";

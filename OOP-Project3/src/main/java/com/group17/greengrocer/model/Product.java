@@ -14,6 +14,8 @@ public class Product {
     private BigDecimal threshold;
     private String description;
     private String imagePath;
+    private String imageUrl;
+    private byte[] imageData;
     
     // Constructors
     public Product() {
@@ -90,6 +92,22 @@ public class Product {
     
     public void setImagePath(String imagePath) {
         this.imagePath = imagePath;
+    }
+    
+    public String getImageUrl() {
+        return imageUrl;
+    }
+    
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
+    }
+    
+    public byte[] getImageData() {
+        return imageData;
+    }
+    
+    public void setImageData(byte[] imageData) {
+        this.imageData = imageData;
     }
     
     /**

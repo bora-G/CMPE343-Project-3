@@ -15,7 +15,7 @@ public class Main extends Application {
     
     @Override
     public void start(Stage primaryStage) throws Exception {
-        // Test database connection
+        // Test database connection and run migrations
         DatabaseAdapter dbAdapter = DatabaseAdapter.getInstance();
         if (!dbAdapter.testConnection()) {
             System.err.println("Warning: Database connection test failed. " +
@@ -24,6 +24,8 @@ public class Main extends Application {
             System.err.println("1. Create the database: CREATE DATABASE greengrocer_db;");
             System.err.println("2. Run the schema.sql file to create tables and insert sample data");
             System.err.println("3. Update DatabaseAdapter.java with your MySQL credentials");
+        } else {
+            System.out.println("Database connection successful. Migrations completed if needed.");
         }
         
         // Load login view
@@ -35,6 +37,7 @@ public class Main extends Application {
         
         primaryStage.setTitle("Local Greengrocer - Login");
         primaryStage.setScene(scene);
+        primaryStage.setMaximized(true);
         primaryStage.setResizable(true);
         primaryStage.show();
     }

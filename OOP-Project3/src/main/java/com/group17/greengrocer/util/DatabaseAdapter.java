@@ -1,35 +1,24 @@
 package com.group17.greengrocer.util;
 
 import java.sql.Connection;
+import java.sql.DatabaseMetaData;
 import java.sql.DriverManager;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * DatabaseAdapter class for managing database connections.
  * Handles JDBC connection to MySQL database.
- * Supports both localhost and local network connections.
- * 
- * For local network usage:
- * - Change DB_HOST to the IP address of the MySQL server (e.g.,
- * "192.168.1.100")
- * - Ensure MySQL server allows remote connections
- * - Update MySQL user permissions: GRANT ALL ON greengrocer_db.* TO 'root'@'%';
  */
 public class DatabaseAdapter {
-    // Database configuration - supports localhost and network IP addresses
-    // For local network: change to IP address (e.g., "192.168.1.100" or
-    // "192.168.0.50")
-    private static final String DB_HOST = "localhost"; // Change to network IP for local network usage
-    private static final String DB_PORT = "3306";
-    private static final String DB_NAME = "greengrocer_db";
-    private static final String DB_URL = "jdbc:mysql://" + DB_HOST + ":" + DB_PORT + "/" + DB_NAME
-            + "?useSSL=false&allowPublicKeyRetrieval=true";
+    private static final String DB_URL = "jdbc:mysql://localhost:3306/greengrocer_db";
     private static final String DB_USER = "root";
-    private static final String DB_PASSWORD = ""; // No password for Fedora/MariaDB default
-
+    private static final String DB_PASSWORD = "1234"; // Change this to your MySQL password
+    
     private static DatabaseAdapter instance;
     private Connection connection;
-
+    
     /**
      * Private constructor for singleton pattern
      */
@@ -42,7 +31,7 @@ public class DatabaseAdapter {
             e.printStackTrace();
         }
     }
-
+    
     /**
      * Get singleton instance of DatabaseAdapter
      */
@@ -52,10 +41,9 @@ public class DatabaseAdapter {
         }
         return instance;
     }
-
+    
     /**
      * Get database connection
-     * 
      * @return Connection object
      * @throws SQLException if connection fails
      */
@@ -65,7 +53,7 @@ public class DatabaseAdapter {
         }
         return connection;
     }
-
+    
     /**
      * Close database connection
      */
@@ -79,215 +67,188 @@ public class DatabaseAdapter {
             e.printStackTrace();
         }
     }
-
+    
     /**
      * Test database connection
-     * 
      * @return true if connection is successful
      */
     public boolean testConnection() {
         try {
             Connection conn = getConnection();
-            return conn != null && !conn.isClosed();
+            if (conn != null && !conn.isClosed()) {
+                // Run migrations after successful connection
+                runMigrations(conn);
+                return true;
+            }
+            return false;
         } catch (SQLException e) {
             System.err.println("Database connection test failed: " + e.getMessage());
             return false;
         }
     }
-
+    
     /**
-     * Run all database migrations
+     * Run database migrations to add missing columns
      */
-    public void runMigrations() {
-        System.out.println("Checking database schema...");
-        migrateProductInfoTable();
-        migrateOrderInfoTable();
-        migrateOrderInfoColumns();
-    }
-
-    /**
-     * Check and add missing columns to ProductInfo table if they don't exist
-     * This is a migration method to add productImage and imageMimeType columns
-     */
-    public void migrateProductInfoTable() {
-        try (Connection conn = getConnection()) {
-            // Check if productImage column exists
-            boolean hasProductImage = columnExists(conn, "ProductInfo", "productImage");
-            boolean hasImageMimeType = columnExists(conn, "ProductInfo", "imageMimeType");
-
-            if (!hasProductImage || !hasImageMimeType) {
-                System.out.println("Migrating ProductInfo table: Adding missing columns...");
-
-                if (!hasProductImage) {
-                    try (java.sql.Statement stmt = conn.createStatement()) {
-                        String sql = "ALTER TABLE ProductInfo ADD COLUMN productImage LONGBLOB AFTER imagePath";
-                        stmt.executeUpdate(sql);
-                        System.out.println("✓ Added productImage column");
-                    } catch (SQLException e) {
-                        // Column might already exist, ignore duplicate column error
-                        if (!e.getMessage().contains("Duplicate column name")) {
-                            System.err.println("Error adding productImage column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-                if (!hasImageMimeType) {
-                    try (java.sql.Statement stmt = conn.createStatement()) {
-                        String sql = "ALTER TABLE ProductInfo ADD COLUMN imageMimeType VARCHAR(50) AFTER productImage";
-                        stmt.executeUpdate(sql);
-                        System.out.println("✓ Added imageMimeType column");
-                    } catch (SQLException e) {
-                        // Column might already exist, ignore duplicate column error
-                        if (!e.getMessage().contains("Duplicate column name")) {
-                            System.err.println("Error adding imageMimeType column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                }
-
-                System.out.println("Migration completed successfully!");
-            } else {
-                System.out.println("ProductInfo table is up to date (all columns exist)");
+    private void runMigrations(Connection conn) {
+        // Check and add imageUrl column to ProductInfo
+        if (!columnExists(conn, "ProductInfo", "imageUrl")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE ProductInfo ADD COLUMN imageUrl VARCHAR(500) AFTER imagePath");
+                System.out.println("✓ Added imageUrl column to ProductInfo");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not add imageUrl column: " + e.getMessage());
             }
-        } catch (SQLException e) {
-            System.err.println("Error during database migration: " + e.getMessage());
-            e.printStackTrace();
         }
-    }
-
-    /**
-     * Migrate OrderInfo table to change invoiceContent from LONGTEXT to LONGBLOB
-     * for PDF storage
-     */
-    public void migrateOrderInfoTable() {
-        try (Connection conn = getConnection()) {
-            // Check current column type
-            String currentType = getColumnType(conn, "OrderInfo", "invoiceContent");
-
-            if (currentType != null && currentType.toUpperCase().contains("TEXT")) {
-                System.out.println(
-                        "Migrating OrderInfo table: Converting invoiceContent from TEXT to BLOB for PDF storage...");
-
-                try (java.sql.Statement stmt = conn.createStatement()) {
-                    // MySQL doesn't support direct ALTER from TEXT to BLOB, so we need to:
-                    // 1. Add a temporary column
-                    // 2. Copy data (if any) - but since it's PDF, we'll just change the type
-                    // 3. Drop old column
-                    // 4. Rename new column
-
-                    // For simplicity, we'll just alter the column type directly
-                    // Note: This will clear existing text data, but new orders will have PDF
-                    String sql = "ALTER TABLE OrderInfo MODIFY COLUMN invoiceContent LONGBLOB";
-                    stmt.executeUpdate(sql);
-                    System.out.println("✓ Converted invoiceContent to LONGBLOB for PDF storage");
+        
+        // Check and add imageData column to ProductInfo
+        if (!columnExists(conn, "ProductInfo", "imageData")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE ProductInfo ADD COLUMN imageData LONGBLOB AFTER imageUrl");
+                System.out.println("✓ Added imageData column to ProductInfo");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not add imageData column: " + e.getMessage());
+            }
+        }
+        
+        // Check and add invoicePdf column to OrderInfo
+        if (!columnExists(conn, "OrderInfo", "invoicePdf")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE OrderInfo ADD COLUMN invoicePdf LONGBLOB AFTER invoicePath");
+                System.out.println("✓ Added invoicePdf column to OrderInfo");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not add invoicePdf column: " + e.getMessage());
+            }
+        }
+        
+        // Check and add originalPrice column to ProductInfo
+        if (!columnExists(conn, "ProductInfo", "originalPrice")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE ProductInfo ADD COLUMN originalPrice DECIMAL(10, 2) AFTER pricePerKg");
+                System.out.println("✓ Added originalPrice column to ProductInfo");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not add originalPrice column: " + e.getMessage());
+            }
+        }
+        
+        // Check and add discountPercent column to ProductInfo
+        if (!columnExists(conn, "ProductInfo", "discountPercent")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("ALTER TABLE ProductInfo ADD COLUMN discountPercent DECIMAL(5, 2) DEFAULT 0.00 AFTER originalPrice");
+                System.out.println("✓ Added discountPercent column to ProductInfo");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not add discountPercent column: " + e.getMessage());
+            }
+        }
+        
+        // Check and create Coupon table if it doesn't exist
+        if (!tableExists(conn, "Coupon")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE IF NOT EXISTS Coupon (" +
+                    "couponId INT PRIMARY KEY AUTO_INCREMENT, " +
+                    "customerId INT NOT NULL, " +
+                    "couponCode VARCHAR(20) UNIQUE NOT NULL, " +
+                    "discountAmount DECIMAL(10, 2) NOT NULL, " +
+                    "discountPercent DECIMAL(5, 2), " +
+                    "couponName VARCHAR(100), " +
+                    "isUsed BOOLEAN DEFAULT FALSE, " +
+                    "expiryDate TIMESTAMP, " +
+                    "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (customerId) REFERENCES UserInfo(userId) ON DELETE CASCADE" +
+                    ")");
+                System.out.println("✓ Created Coupon table");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not create Coupon table: " + e.getMessage());
+            }
+        } else {
+            // Check if couponName column exists, add if missing
+            if (!columnExists(conn, "Coupon", "couponName")) {
+                try (Statement stmt = conn.createStatement()) {
+                    stmt.execute("ALTER TABLE Coupon ADD COLUMN couponName VARCHAR(100) AFTER discountPercent");
+                    System.out.println("✓ Added couponName column to Coupon");
                 } catch (SQLException e) {
-                    System.err.println("Error migrating invoiceContent column: " + e.getMessage());
-                    e.printStackTrace();
-                }
-            } else if (currentType != null && currentType.toUpperCase().contains("BLOB")) {
-                System.out.println("OrderInfo table already has invoiceContent as BLOB (PDF format)");
-            } else {
-                // Column might not exist, add it
-                try (java.sql.Statement stmt = conn.createStatement()) {
-                    String sql = "ALTER TABLE OrderInfo ADD COLUMN invoiceContent LONGBLOB AFTER invoicePath";
-                    stmt.executeUpdate(sql);
-                    System.out.println("✓ Added invoiceContent column as LONGBLOB for PDF storage");
-                } catch (SQLException e) {
-                    if (!e.getMessage().contains("Duplicate column name")) {
-                        System.err.println("Error adding invoiceContent column: " + e.getMessage());
-                        e.printStackTrace();
-                    }
+                    System.err.println("Warning: Could not add couponName column: " + e.getMessage());
                 }
             }
-        } catch (SQLException e) {
-            System.err.println("Error during OrderInfo migration: " + e.getMessage());
-            e.printStackTrace();
+        }
+        
+        // Check and create CarrierRating table if it doesn't exist
+        if (!tableExists(conn, "CarrierRating")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE IF NOT EXISTS CarrierRating (" +
+                    "ratingId INT PRIMARY KEY AUTO_INCREMENT, " +
+                    "orderId INT NOT NULL, " +
+                    "carrierId INT NOT NULL, " +
+                    "customerId INT NOT NULL, " +
+                    "rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5), " +
+                    "comment TEXT, " +
+                    "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (orderId) REFERENCES OrderInfo(orderId) ON DELETE CASCADE, " +
+                    "FOREIGN KEY (carrierId) REFERENCES UserInfo(userId) ON DELETE CASCADE, " +
+                    "FOREIGN KEY (customerId) REFERENCES UserInfo(userId) ON DELETE CASCADE" +
+                    ")");
+                System.out.println("✓ Created CarrierRating table");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not create CarrierRating table: " + e.getMessage());
+            }
+        }
+        
+        // Check and create Message table if it doesn't exist
+        if (!tableExists(conn, "Message")) {
+            try (Statement stmt = conn.createStatement()) {
+                stmt.execute("CREATE TABLE IF NOT EXISTS Message (" +
+                    "messageId INT PRIMARY KEY AUTO_INCREMENT, " +
+                    "customerId INT NOT NULL, " +
+                    "ownerId INT, " +
+                    "subject VARCHAR(200), " +
+                    "message TEXT NOT NULL, " +
+                    "isRead BOOLEAN DEFAULT FALSE, " +
+                    "createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP, " +
+                    "FOREIGN KEY (customerId) REFERENCES UserInfo(userId) ON DELETE CASCADE, " +
+                    "FOREIGN KEY (ownerId) REFERENCES UserInfo(userId) ON DELETE SET NULL" +
+                    ")");
+                System.out.println("✓ Created Message table");
+            } catch (SQLException e) {
+                System.err.println("Warning: Could not create Message table: " + e.getMessage());
+            }
         }
     }
-
+    
     /**
-     * Get the data type of a column
-     * 
-     * @param conn       Database connection
-     * @param tableName  Table name
-     * @param columnName Column name
-     * @return Column type as string, or null if column doesn't exist
+     * Check if a table exists
      */
-    private String getColumnType(Connection conn, String tableName, String columnName) {
-        try (java.sql.Statement stmt = conn.createStatement();
-                java.sql.ResultSet rs = stmt
-                        .executeQuery("SHOW COLUMNS FROM " + tableName + " LIKE '" + columnName + "'")) {
-            if (rs.next()) {
-                return rs.getString("Type");
+    private boolean tableExists(Connection conn, String tableName) {
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getTables(null, null, tableName, null)) {
+                return rs.next();
             }
         } catch (SQLException e) {
-            System.err.println("Error getting column type: " + e.getMessage());
-        }
-        return null;
-    }
-
-    /**
-     * Migrate OrderInfo table to add missing columns (subtotal, vatAmount,
-     * discountAmount, loyaltyDiscount, etc.)
-     */
-    public void migrateOrderInfoColumns() {
-        try (Connection conn = getConnection()) {
-            System.out.println("Migrating OrderInfo table: Checking for missing columns...");
-
-            // List of required columns with their definitions
-            String[][] requiredColumns = {
-                    { "subtotal", "DECIMAL(10, 2) NOT NULL DEFAULT 0.00" },
-                    { "vatAmount", "DECIMAL(10, 2) NOT NULL DEFAULT 0.00" },
-                    { "discountAmount", "DECIMAL(10, 2) NOT NULL DEFAULT 0.00" },
-                    { "loyaltyDiscount", "DECIMAL(10, 2) NOT NULL DEFAULT 0.00" },
-                    { "canCancelUntil", "TIMESTAMP NULL" },
-                    { "couponCode", "VARCHAR(20) NULL" }
-            };
-
-            for (String[] columnDef : requiredColumns) {
-                String columnName = columnDef[0];
-                String columnType = columnDef[1];
-
-                if (!columnExists(conn, "OrderInfo", columnName)) {
-                    try (java.sql.Statement stmt = conn.createStatement()) {
-                        String sql = "ALTER TABLE OrderInfo ADD COLUMN " + columnName + " " + columnType;
-                        stmt.executeUpdate(sql);
-                        System.out.println("✓ Added " + columnName + " column to OrderInfo");
-                    } catch (SQLException e) {
-                        if (!e.getMessage().contains("Duplicate column name")) {
-                            System.err.println("Error adding " + columnName + " column: " + e.getMessage());
-                            e.printStackTrace();
-                        }
-                    }
-                } else {
-                    System.out.println("OrderInfo table already has " + columnName + " column.");
-                }
-            }
-
-            System.out.println("OrderInfo column migration completed!");
-        } catch (SQLException e) {
-            System.err.println("Error during OrderInfo column migration: " + e.getMessage());
-            e.printStackTrace();
+            System.err.println("Error checking table existence: " + e.getMessage());
+            return false;
         }
     }
-
+    
     /**
      * Check if a column exists in a table
-     * 
-     * @param conn       Database connection
-     * @param tableName  Table name
-     * @param columnName Column name
-     * @return true if column exists, false otherwise
      */
     private boolean columnExists(Connection conn, String tableName, String columnName) {
-        try (java.sql.Statement stmt = conn.createStatement();
-                java.sql.ResultSet rs = stmt
-                        .executeQuery("SHOW COLUMNS FROM " + tableName + " LIKE '" + columnName + "'")) {
-            return rs.next();
+        try {
+            DatabaseMetaData metaData = conn.getMetaData();
+            try (ResultSet rs = metaData.getColumns(null, null, tableName, columnName)) {
+                return rs.next();
+            }
         } catch (SQLException e) {
             System.err.println("Error checking column existence: " + e.getMessage());
             return false;
         }
     }
 }
+
+
+
+
+
+
+
+

@@ -10,6 +10,7 @@ public class Coupon {
     private int couponId;
     private int customerId;
     private String couponCode;
+    private String couponName;
     private BigDecimal discountAmount;
     private BigDecimal discountPercent;
     private boolean isUsed;
@@ -43,6 +44,14 @@ public class Coupon {
     
     public void setCouponCode(String couponCode) {
         this.couponCode = couponCode;
+    }
+    
+    public String getCouponName() {
+        return couponName;
+    }
+    
+    public void setCouponName(String couponName) {
+        this.couponName = couponName;
     }
     
     public BigDecimal getDiscountAmount() {

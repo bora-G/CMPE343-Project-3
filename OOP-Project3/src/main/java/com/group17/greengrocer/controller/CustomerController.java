@@ -61,6 +61,9 @@ public class CustomerController {
     @FXML
     private VBox productsContainer;
     
+    @FXML
+    private ComboBox<String> sortComboBox;
+    
     private ProductService productService;
     private AuthService authService;
     private com.group17.greengrocer.service.OrderService orderService;
@@ -79,6 +82,11 @@ public class CustomerController {
             usernameLabel.setText(authService.getCurrentUser().getUsername());
             welcomeLabel.setText("Welcome, " + authService.getCurrentUser().getFullName());
         }
+        
+        // Setup sorting ComboBox
+        sortComboBox.getItems().addAll("Name (A-Z)", "Name (Z-A)", "Price (Low-High)", "Price (High-Low)");
+        sortComboBox.setValue("Name (A-Z)");
+        sortComboBox.setOnAction(e -> handleSortChange());
         
         // Load products grouped by type
         loadProductsByType();
@@ -140,10 +148,13 @@ public class CustomerController {
      * Create a TitledPane for a product type
      */
     private TitledPane createProductTypePane(String type, List<Product> products) {
+        // Sort products based on selected sort option
+        List<Product> sortedProducts = sortProducts(new ArrayList<>(products));
+        
         VBox content = new VBox(10);
         content.setPadding(new javafx.geometry.Insets(10));
         
-        for (Product product : products) {
+        for (Product product : sortedProducts) {
             HBox productRow = createProductRow(product);
             content.getChildren().add(productRow);
         }
@@ -151,6 +162,52 @@ public class CustomerController {
         TitledPane titledPane = new TitledPane(type, content);
         titledPane.setExpanded(true);
         return titledPane;
+    }
+    
+    /**
+     * Sort products based on selected sort option
+     */
+    private List<Product> sortProducts(List<Product> products) {
+        String sortOption = sortComboBox.getValue();
+        if (sortOption == null) {
+            sortOption = "Name (A-Z)";
+        }
+        
+        switch (sortOption) {
+            case "Name (A-Z)":
+                products.sort((p1, p2) -> p1.getProductName().compareToIgnoreCase(p2.getProductName()));
+                break;
+            case "Name (Z-A)":
+                products.sort((p1, p2) -> p2.getProductName().compareToIgnoreCase(p1.getProductName()));
+                break;
+            case "Price (Low-High)":
+                products.sort((p1, p2) -> {
+                    BigDecimal price1 = productService.getDisplayPrice(p1);
+                    BigDecimal price2 = productService.getDisplayPrice(p2);
+                    return price1.compareTo(price2);
+                });
+                break;
+            case "Price (High-Low)":
+                products.sort((p1, p2) -> {
+                    BigDecimal price1 = productService.getDisplayPrice(p1);
+                    BigDecimal price2 = productService.getDisplayPrice(p2);
+                    return price2.compareTo(price1);
+                });
+                break;
+        }
+        return products;
+    }
+    
+    /**
+     * Handle sort change
+     */
+    @FXML
+    private void handleSortChange() {
+        if (searchField.getText().trim().isEmpty()) {
+            loadProductsByType();
+        } else {
+            handleSearch();
+        }
     }
     
     /**
@@ -162,6 +219,20 @@ public class CustomerController {
         
         // Store product reference in row's userData for later refresh
         row.setUserData(product);
+        
+        // Product image (if available - only URL)
+        javafx.scene.image.ImageView imageView = null;
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                javafx.scene.image.Image image = new javafx.scene.image.Image(product.getImageUrl(), true);
+                imageView = new javafx.scene.image.ImageView(image);
+                imageView.setFitWidth(50);
+                imageView.setFitHeight(50);
+                imageView.setPreserveRatio(true);
+            } catch (Exception e) {
+                System.err.println("Error loading image from URL: " + e.getMessage());
+            }
+        }
         
         Label nameLabel = new Label(product.getProductName());
         nameLabel.setPrefWidth(200);
@@ -331,6 +402,7 @@ public class CustomerController {
             Stage cartStage = new Stage();
             cartStage.setTitle("Shopping Cart");
             cartStage.setScene(new Scene(root));
+            cartStage.setMaximized(true);
             
             // Refresh product list when cart window is closed
             cartStage.setOnCloseRequest(e -> {
@@ -465,6 +537,7 @@ public class CustomerController {
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Login");
+            stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
