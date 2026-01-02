@@ -30,10 +30,14 @@ CREATE TABLE ProductInfo (
     productName VARCHAR(100) NOT NULL,
     productType VARCHAR(50) NOT NULL,
     pricePerKg DECIMAL(10, 2) NOT NULL,
+    originalPrice DECIMAL(10, 2),
+    discountPercent DECIMAL(5, 2) DEFAULT 0.00,
     stock DECIMAL(10, 2) NOT NULL DEFAULT 0.0,
     threshold DECIMAL(10, 2) NOT NULL DEFAULT 5.0,
     description TEXT,
     imagePath VARCHAR(255),
+    imageUrl VARCHAR(500),
+    imageData LONGBLOB,
     createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -53,6 +57,7 @@ CREATE TABLE OrderInfo (
     status ENUM('Pending', 'Assigned', 'InTransit', 'Delivered', 'Cancelled') DEFAULT 'Pending',
     deliveryAddress TEXT NOT NULL,
     invoicePath VARCHAR(255),
+    invoicePdf LONGBLOB,
     couponCode VARCHAR(20),
     canCancelUntil TIMESTAMP,
     FOREIGN KEY (customerId) REFERENCES UserInfo(userId) ON DELETE CASCADE,
