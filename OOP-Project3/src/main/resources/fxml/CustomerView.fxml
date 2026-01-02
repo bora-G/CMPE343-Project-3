@@ -19,7 +19,6 @@
             <Label fx:id="welcomeLabel" text="Welcome, Customer" textFill="WHITE" />
             <Button fx:id="profileButton" mnemonicParsing="false" onAction="#handleEditProfile" text="Edit Profile" />
             <Button fx:id="orderHistoryButton" mnemonicParsing="false" onAction="#handleViewOrderHistory" text="My Orders" />
-            <Button fx:id="couponsButton" mnemonicParsing="false" onAction="#handleViewCoupons" text="My Coupons" />
             <Button fx:id="messageOwnerButton" mnemonicParsing="false" onAction="#handleMessageOwner" text="Message Owner" />
             <Button fx:id="refreshButton" mnemonicParsing="false" onAction="#handleRefresh" text="Refresh" />
             <Button fx:id="cartButton" mnemonicParsing="false" onAction="#handleViewCart" text="View Cart" />
