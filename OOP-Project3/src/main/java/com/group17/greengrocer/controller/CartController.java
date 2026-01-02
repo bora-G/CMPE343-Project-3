@@ -210,13 +210,15 @@ public class CartController implements Initializable {
         // Calculate VAT (20% of subtotal)
         vatAmount = subtotal.multiply(VAT_RATE);
         
-        // Calculate loyalty discount (5% if customer has 5+ completed orders)
+        // Calculate loyalty discount (configurable percentage if customer meets threshold)
         int completedOrdersCount = loyaltyService.getCompletedOrdersCount(
             com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
         loyaltyDiscount = BigDecimal.ZERO;
-        if (completedOrdersCount >= 5) {
-            // 5% loyalty discount
-            loyaltyDiscount = subtotal.multiply(new BigDecimal("0.05"));
+        int threshold = com.group17.greengrocer.service.LoyaltyService.getLoyaltyThreshold();
+        BigDecimal discountPercent = com.group17.greengrocer.service.LoyaltyService.getLoyaltyDiscountPercent();
+        if (completedOrdersCount >= threshold) {
+            // Configurable loyalty discount
+            loyaltyDiscount = subtotal.multiply(discountPercent).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
         }
         
         // Calculate total (subtotal + VAT - discounts)

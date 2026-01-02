@@ -90,17 +90,61 @@ public class LoginController {
                 return;
         }
         
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
+        // Load FXML file with proper error handling
+        // Try multiple methods to handle Turkish characters in path
+        java.net.URL fxmlUrl = null;
+        try {
+            // Method 1: Try with getClass().getResource()
+            fxmlUrl = getClass().getResource(fxmlFile);
+            
+            // Method 2: If null, try with ClassLoader
+            if (fxmlUrl == null) {
+                fxmlUrl = Thread.currentThread().getContextClassLoader().getResource(fxmlFile.substring(1)); // Remove leading /
+            }
+            
+            // Method 3: If still null, try with ClassLoader with full path
+            if (fxmlUrl == null) {
+                fxmlUrl = ClassLoader.getSystemResource(fxmlFile.substring(1));
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting resource URL: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        if (fxmlUrl == null) {
+            String errorMsg = "FXML file not found: " + fxmlFile + 
+                "\nSearched in classpath. Make sure:\n" +
+                "1. The file exists in src/main/resources/fxml/\n" +
+                "2. Project is rebuilt (mvn clean compile or IDE rebuild)\n" +
+                "3. File is included in target/classes/fxml/";
+            throw new IOException(errorMsg);
+        }
+        
+        System.out.println("Loading FXML from: " + fxmlUrl.toString());
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
         Parent root = loader.load();
         Scene scene = new Scene(root);
-        scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        
+        // Load CSS with error handling
+        java.net.URL cssUrl = getClass().getResource("/css/styles.css");
+        if (cssUrl != null) {
+            scene.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        
+        // Use existing stage instead of creating new one
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setScene(scene);
         stage.setTitle("Group17 GreenGrocer");
-        // Set full screen - use both setMaximized and setFullScreen for better compatibility
+        // Set full screen
         stage.setMaximized(true);
         stage.setWidth(javafx.stage.Screen.getPrimary().getVisualBounds().getWidth());
         stage.setHeight(javafx.stage.Screen.getPrimary().getVisualBounds().getHeight());
+        
+        // Disable close button (X) - user must use logout button
+        stage.setOnCloseRequest(e -> {
+            e.consume(); // Prevent window from closing
+        });
+        
         stage.show();
     }
     

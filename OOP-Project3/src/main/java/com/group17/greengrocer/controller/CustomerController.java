@@ -93,6 +93,21 @@ public class CustomerController {
         
         // Setup auto-refresh every 5 seconds
         setupAutoRefresh();
+        
+        // Disable close button (X) - user must use logout button
+        // Use Platform.runLater because scene is not yet attached during initialize()
+        javafx.application.Platform.runLater(() -> {
+            try {
+                Stage stage = (Stage) welcomeLabel.getScene().getWindow();
+                if (stage != null) {
+                    stage.setOnCloseRequest(e -> {
+                        e.consume(); // Prevent window from closing - user must use logout button
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Warning: Could not set close request handler: " + e.getMessage());
+            }
+        });
     }
     
     /**
@@ -535,6 +550,7 @@ public class CustomerController {
             Parent root = loader.load();
             Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
+            stage.setFullScreen(false); // Exit fullscreen before changing scene
             stage.setScene(scene);
             stage.setTitle("Login");
             stage.setMaximized(true);

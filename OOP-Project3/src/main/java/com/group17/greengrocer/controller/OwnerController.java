@@ -226,6 +226,28 @@ public class OwnerController implements Initializable {
         
         // Show threshold warning after loading data
         checkLowStockProducts();
+        
+        // Disable tab closing - make all tabs non-closable
+        if (mainTabPane != null) {
+            for (Tab tab : mainTabPane.getTabs()) {
+                tab.setClosable(false);
+            }
+        }
+        
+        // Disable close button (X) - user must use logout button
+        // Use Platform.runLater because scene is not yet attached during initialize()
+        javafx.application.Platform.runLater(() -> {
+            try {
+                Stage stage = (Stage) welcomeLabel.getScene().getWindow();
+                if (stage != null) {
+                    stage.setOnCloseRequest(e -> {
+                        e.consume(); // Prevent window from closing - user must use logout button
+                    });
+                }
+            } catch (Exception e) {
+                System.err.println("Warning: Could not set close request handler: " + e.getMessage());
+            }
+        });
     }
     
     /**
@@ -491,10 +513,14 @@ public class OwnerController implements Initializable {
     private void loadLoyaltyStandards() {
         loyaltyStandardsContainer.getChildren().clear();
         
+        int threshold = com.group17.greengrocer.service.LoyaltyService.getLoyaltyThreshold();
+        java.math.BigDecimal discountPercent = com.group17.greengrocer.service.LoyaltyService.getLoyaltyDiscountPercent();
+        
         Label titleLabel = new Label("Current Loyalty Standards:");
         titleLabel.setStyle("-fx-font-weight: bold;");
         
-        Label standardLabel = new Label("Customers with 5 or more completed orders receive a 5% loyalty discount on all purchases.");
+        Label standardLabel = new Label("Customers with " + threshold + " or more completed orders receive a " + 
+            discountPercent + "% loyalty discount on all purchases.");
         
         loyaltyStandardsContainer.getChildren().addAll(titleLabel, standardLabel);
     }
@@ -1182,31 +1208,40 @@ public class OwnerController implements Initializable {
         dialog.setTitle("Create Coupon");
         dialog.setHeaderText("Create a new discount coupon");
         
-        ComboBox<com.group17.greengrocer.model.User> customerComboBox = new ComboBox<>();
+        ComboBox<Object> customerComboBox = new ComboBox<>();
+        // Add "All Customers" option first
+        customerComboBox.getItems().add("All Customers");
+        // Add all customers
         customerComboBox.getItems().addAll(ownerService.getAllCustomers());
         
         // Set cell factory for dropdown items
-        customerComboBox.setCellFactory(param -> new ListCell<com.group17.greengrocer.model.User>() {
+        customerComboBox.setCellFactory(param -> new ListCell<Object>() {
             @Override
-            protected void updateItem(com.group17.greengrocer.model.User item, boolean empty) {
+            protected void updateItem(Object item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
-                } else {
-                    setText(item.getFullName() + " (" + item.getUsername() + ")");
+                } else if (item instanceof String) {
+                    setText((String) item);
+                } else if (item instanceof com.group17.greengrocer.model.User) {
+                    com.group17.greengrocer.model.User user = (com.group17.greengrocer.model.User) item;
+                    setText(user.getFullName() + " (" + user.getUsername() + ")");
                 }
             }
         });
         
         // Set button cell for selected item display
-        customerComboBox.setButtonCell(new ListCell<com.group17.greengrocer.model.User>() {
+        customerComboBox.setButtonCell(new ListCell<Object>() {
             @Override
-            protected void updateItem(com.group17.greengrocer.model.User item, boolean empty) {
+            protected void updateItem(Object item, boolean empty) {
                 super.updateItem(item, empty);
                 if (empty || item == null) {
                     setText(null);
-                } else {
-                    setText(item.getFullName() + " (" + item.getUsername() + ")");
+                } else if (item instanceof String) {
+                    setText((String) item);
+                } else if (item instanceof com.group17.greengrocer.model.User) {
+                    com.group17.greengrocer.model.User user = (com.group17.greengrocer.model.User) item;
+                    setText(user.getFullName() + " (" + user.getUsername() + ")");
                 }
             }
         });
@@ -1246,27 +1281,33 @@ public class OwnerController implements Initializable {
         
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                com.group17.greengrocer.model.User customer = customerComboBox.getValue();
+                Object selected = customerComboBox.getValue();
                 String couponCode = codeField.getText().trim();
                 couponNameRef[0] = couponNameField.getText().trim();
-                if (customer != null && !couponCode.isEmpty() && !discountField.getText().trim().isEmpty()) {
-                    try {
-                        java.math.BigDecimal discount = new java.math.BigDecimal(discountField.getText());
-                        if (discount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                            showAlert(Alert.AlertType.ERROR, "Invalid Input", "Discount amount must be greater than 0.");
-                            return null;
-                        }
-                        return new javafx.util.Pair<>(customer.getUserId(), 
-                            new javafx.util.Pair<>(couponCode, discount));
-                    } catch (NumberFormatException e) {
-                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid discount amount.");
+                
+                if (selected == null) {
+                    showAlert(Alert.AlertType.ERROR, "Missing Field", "Please select a customer or 'All Customers'.");
+                    return null;
+                }
+                
+                if (couponCode.isEmpty() || discountField.getText().trim().isEmpty()) {
+                    showAlert(Alert.AlertType.ERROR, "Missing Field", "Please enter coupon code and discount amount.");
+                    return null;
+                }
+                
+                try {
+                    java.math.BigDecimal discount = new java.math.BigDecimal(discountField.getText());
+                    if (discount.compareTo(java.math.BigDecimal.ZERO) <= 0) {
+                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Discount amount must be greater than 0.");
+                        return null;
                     }
-                } else {
-                    if (customer == null) {
-                        showAlert(Alert.AlertType.ERROR, "Missing Field", "Please select a customer.");
-                    } else if (discountField.getText().trim().isEmpty()) {
-                        showAlert(Alert.AlertType.ERROR, "Missing Field", "Please enter discount amount.");
-                    }
+                    
+                    // Return -1 as customerId if "All Customers" is selected
+                    int customerId = selected instanceof String ? -1 : ((com.group17.greengrocer.model.User) selected).getUserId();
+                    return new javafx.util.Pair<>(customerId, 
+                        new javafx.util.Pair<>(couponCode, discount));
+                } catch (NumberFormatException e) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter a valid discount amount.");
                 }
             }
             return null;
@@ -1274,12 +1315,36 @@ public class OwnerController implements Initializable {
         
         dialog.showAndWait().ifPresent(result -> {
             String couponName = couponNameRef[0] != null && !couponNameRef[0].isEmpty() ? couponNameRef[0] : null;
-            if (ownerService.createCoupon(result.getKey(), result.getValue().getKey(), 
-                result.getValue().getValue(), null, couponName)) {
-                showAlert(Alert.AlertType.INFORMATION, "Success", "Coupon created successfully!");
-                loadCoupons();
+            int customerId = result.getKey();
+            String couponCode = result.getValue().getKey();
+            java.math.BigDecimal discount = result.getValue().getValue();
+            
+            if (customerId == -1) {
+                // Create coupon for all customers
+                List<com.group17.greengrocer.model.User> allCustomers = ownerService.getAllCustomers();
+                int successCount = 0;
+                for (com.group17.greengrocer.model.User customer : allCustomers) {
+                    // Generate unique coupon code for each customer
+                    String uniqueCode = generateUniqueCouponCode();
+                    if (ownerService.createCoupon(customer.getUserId(), uniqueCode, discount, null, couponName)) {
+                        successCount++;
+                    }
+                }
+                if (successCount > 0) {
+                    showAlert(Alert.AlertType.INFORMATION, "Success", 
+                        "Coupons created successfully for " + successCount + " customer(s)!");
+                    loadCoupons();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to create coupons.");
+                }
             } else {
-                showAlert(Alert.AlertType.ERROR, "Error", "Failed to create coupon.");
+                // Create coupon for single customer
+                if (ownerService.createCoupon(customerId, couponCode, discount, null, couponName)) {
+                    showAlert(Alert.AlertType.INFORMATION, "Success", "Coupon created successfully!");
+                    loadCoupons();
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to create coupon.");
+                }
             }
         });
     }
@@ -1328,12 +1393,64 @@ public class OwnerController implements Initializable {
      */
     @FXML
     private void handleAdjustLoyalty() {
-        Alert infoAlert = new Alert(Alert.AlertType.INFORMATION);
-        infoAlert.setTitle("Loyalty Standards");
-        infoAlert.setHeaderText("Current Loyalty Standards");
-        infoAlert.setContentText("Customers with 5 or more completed orders receive a 5% loyalty discount on all purchases.\n\n" +
-            "This standard is currently fixed. In a production system, you could adjust this threshold and discount percentage.");
-        infoAlert.showAndWait();
+        Dialog<javafx.util.Pair<Integer, java.math.BigDecimal>> dialog = new Dialog<>();
+        dialog.setTitle("Adjust Loyalty Standards");
+        dialog.setHeaderText("Configure Loyalty Discount Settings");
+        
+        TextField thresholdField = new TextField(String.valueOf(com.group17.greengrocer.service.LoyaltyService.getLoyaltyThreshold()));
+        thresholdField.setPromptText("Minimum completed orders (e.g., 5)");
+        
+        TextField discountPercentField = new TextField(String.valueOf(com.group17.greengrocer.service.LoyaltyService.getLoyaltyDiscountPercent()));
+        discountPercentField.setPromptText("Discount percentage (e.g., 5.00)");
+        
+        VBox content = new VBox(10);
+        content.setPadding(new Insets(20));
+        content.getChildren().addAll(
+            new Label("Current Settings:"),
+            new Label("Threshold: " + com.group17.greengrocer.service.LoyaltyService.getLoyaltyThreshold() + " orders"),
+            new Label("Discount: " + com.group17.greengrocer.service.LoyaltyService.getLoyaltyDiscountPercent() + "%"),
+            new javafx.scene.control.Separator(),
+            new Label("New Threshold (minimum completed orders):"),
+            thresholdField,
+            new Label("New Discount Percentage:"),
+            discountPercentField
+        );
+        
+        dialog.getDialogPane().setContent(content);
+        dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
+        
+        dialog.setResultConverter(buttonType -> {
+            if (buttonType == ButtonType.OK) {
+                try {
+                    int threshold = Integer.parseInt(thresholdField.getText().trim());
+                    java.math.BigDecimal discountPercent = new java.math.BigDecimal(discountPercentField.getText().trim());
+                    
+                    if (threshold < 0) {
+                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Threshold cannot be negative.");
+                        return null;
+                    }
+                    if (discountPercent.compareTo(java.math.BigDecimal.ZERO) < 0 || discountPercent.compareTo(new java.math.BigDecimal("100")) > 0) {
+                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Discount percentage must be between 0 and 100.");
+                        return null;
+                    }
+                    
+                    return new javafx.util.Pair<>(threshold, discountPercent);
+                } catch (NumberFormatException e) {
+                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter valid numbers.");
+                }
+            }
+            return null;
+        });
+        
+        dialog.showAndWait().ifPresent(result -> {
+            com.group17.greengrocer.service.LoyaltyService.setLoyaltyThreshold(result.getKey());
+            com.group17.greengrocer.service.LoyaltyService.setLoyaltyDiscountPercent(result.getValue());
+            showAlert(Alert.AlertType.INFORMATION, "Success", 
+                "Loyalty standards updated!\n" +
+                "New threshold: " + result.getKey() + " orders\n" +
+                "New discount: " + result.getValue() + "%");
+            loadLoyaltyStandards();
+        });
     }
     
     /**
@@ -1347,6 +1464,7 @@ public class OwnerController implements Initializable {
             Parent root = loader.load();
             Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
+            stage.setFullScreen(false); // Exit fullscreen before changing scene
             stage.setScene(scene);
             stage.setTitle("Login");
             stage.setMaximized(true);
