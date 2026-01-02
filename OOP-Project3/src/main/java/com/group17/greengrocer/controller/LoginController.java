@@ -35,29 +35,31 @@ public class LoginController {
     
     private AuthService authService;
     
+    /**
+     * Initialize the controller.
+     */
     @FXML
     public void initialize() {
         authService = new AuthService();
     }
     
+    /**
+     * Handle login action.
+     */
     @FXML
     private void handleLogin() {
         String username = usernameField.getText().trim();
         String password = passwordField.getText();
         
-        // Clear previous error
         errorLabel.setVisible(false);
         errorLabel.setText("");
         
-        // Validate input
         if (!Validation.isNotEmpty(username) || !Validation.isNotEmpty(password)) {
             showError("Please enter both username and password.");
             return;
         }
         
-        // Attempt login
         if (authService.login(username, password)) {
-            // Navigate based on role
             String role = authService.getCurrentUser().getRole();
             try {
                 navigateToRoleView(role);
@@ -71,7 +73,9 @@ public class LoginController {
     }
     
     /**
-     * Navigate to the appropriate view based on user role
+     * Navigate to the appropriate view based on user role.
+     * @param role The user role (Customer, Carrier, or Owner)
+     * @throws IOException if FXML loading fails
      */
     private void navigateToRoleView(String role) throws IOException {
         String fxmlFile;
@@ -90,34 +94,69 @@ public class LoginController {
                 return;
         }
         
-        FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
+        java.net.URL fxmlUrl = null;
+        try {
+            fxmlUrl = getClass().getResource(fxmlFile);
+            
+            if (fxmlUrl == null) {
+                fxmlUrl = Thread.currentThread().getContextClassLoader().getResource(fxmlFile.substring(1));
+            }
+            
+            if (fxmlUrl == null) {
+                fxmlUrl = ClassLoader.getSystemResource(fxmlFile.substring(1));
+            }
+        } catch (Exception e) {
+            System.err.println("Error getting resource URL: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        if (fxmlUrl == null) {
+            String errorMsg = "FXML file not found: " + fxmlFile + 
+                "\nSearched in classpath. Make sure:\n" +
+                "1. The file exists in src/main/resources/fxml/\n" +
+                "2. Project is rebuilt (mvn clean compile or IDE rebuild)\n" +
+                "3. File is included in target/classes/fxml/";
+            throw new IOException(errorMsg);
+        }
+        
+        System.out.println("Loading FXML from: " + fxmlUrl.toString());
+        FXMLLoader loader = new FXMLLoader(fxmlUrl);
         Parent root = loader.load();
         Scene scene = new Scene(root);
+        
+        java.net.URL cssUrl = getClass().getResource("/css/styles.css");
+        if (cssUrl != null) {
+            scene.getStylesheets().add(cssUrl.toExternalForm());
+        }
+        
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setScene(scene);
         stage.setTitle("Group17 GreenGrocer");
+        stage.setMaximized(true);
+        stage.setWidth(javafx.stage.Screen.getPrimary().getVisualBounds().getWidth());
+        stage.setHeight(javafx.stage.Screen.getPrimary().getVisualBounds().getHeight());
+        
         stage.show();
     }
     
     /**
-     * Handle register action
+     * Handle register action.
      */
     @FXML
     private void handleRegister() {
         Dialog<User> dialog = createRegistrationDialog();
         dialog.showAndWait().ifPresent(user -> {
-            // User registration is handled in the dialog's result converter
         });
     }
     
     /**
-     * Create registration dialog
+     * Create registration dialog.
+     * @return The registration dialog
      */
     private Dialog<User> createRegistrationDialog() {
         Dialog<User> dialog = new Dialog<>();
         dialog.setTitle("Register as Customer");
         
-        // Set dialog size
         dialog.setResizable(true);
         dialog.getDialogPane().setPrefWidth(500);
         dialog.getDialogPane().setPrefHeight(600);
@@ -129,7 +168,6 @@ public class LoginController {
         TextField phoneField = new TextField();
         TextField addressField = new TextField();
         
-        // Add input length restrictions
         usernameField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && newValue.length() > 50) {
                 usernameField.setText(oldValue);
@@ -152,13 +190,11 @@ public class LoginController {
             if (newValue != null && newValue.length() > 10) {
                 phoneField.setText(oldValue);
             }
-            // Only allow digits
             if (newValue != null && !newValue.matches("^[0-9]*$")) {
                 phoneField.setText(oldValue);
             }
         });
         
-        // Create requirement labels with better formatting
         Label usernameReq = new Label("Requirements: 3-50 characters, letters, numbers, underscore only");
         usernameReq.setStyle("-fx-font-size: 10px; -fx-text-fill: #666;");
         usernameReq.setWrapText(true);
@@ -182,43 +218,36 @@ public class LoginController {
         VBox content = new VBox(8);
         content.setPadding(new Insets(20));
         
-        // Username section
         Label usernameLabel = new Label("Username*:");
         usernameLabel.setStyle("-fx-font-weight: bold;");
         VBox usernameBox = new VBox(3);
         usernameBox.getChildren().addAll(usernameLabel, usernameField, usernameReq);
         
-        // Password section
         Label passwordLabel = new Label("Password*:");
         passwordLabel.setStyle("-fx-font-weight: bold;");
         VBox passwordBox = new VBox(3);
         passwordBox.getChildren().addAll(passwordLabel, passwordField, passwordReq);
         
-        // Full Name section
         Label fullNameLabel = new Label("Full Name*:");
         fullNameLabel.setStyle("-fx-font-weight: bold;");
         VBox fullNameBox = new VBox(3);
         fullNameBox.getChildren().addAll(fullNameLabel, fullNameField, fullNameReq);
         
-        // Email section
         Label emailLabel = new Label("Email:");
         emailLabel.setStyle("-fx-font-weight: bold;");
         VBox emailBox = new VBox(3);
         emailBox.getChildren().addAll(emailLabel, emailField, emailReq);
         
-        // Phone section
         Label phoneLabel = new Label("Phone:");
         phoneLabel.setStyle("-fx-font-weight: bold;");
         VBox phoneBox = new VBox(3);
         phoneBox.getChildren().addAll(phoneLabel, phoneField, phoneReq);
         
-        // Address section
         Label addressLabel = new Label("Address:");
         addressLabel.setStyle("-fx-font-weight: bold;");
         VBox addressBox = new VBox(3);
         addressBox.getChildren().addAll(addressLabel, addressField);
         
-        // Required fields note
         Label requiredNote = new Label("* Required fields");
         requiredNote.setStyle("-fx-font-weight: bold; -fx-text-fill: #e74c3c; -fx-padding: 10 0 0 0;");
         
@@ -232,7 +261,6 @@ public class LoginController {
             requiredNote
         );
         
-        // Wrap content in ScrollPane to ensure everything is visible
         ScrollPane scrollPane = new ScrollPane(content);
         scrollPane.setFitToWidth(true);
         scrollPane.setPrefHeight(550);
@@ -251,7 +279,6 @@ public class LoginController {
             String phone = phoneField.getText().trim();
             String address = addressField.getText().trim();
             
-            // Validate required fields
             if (username.isEmpty() || password.isEmpty() || fullName.isEmpty()) {
                 showAlert(Alert.AlertType.ERROR, "Missing Fields", 
                     "Please fill in all required fields (Username, Password, Full Name).");
@@ -259,7 +286,6 @@ public class LoginController {
                 return;
             }
             
-            // Register user
             String result = authService.registerCustomer(username, password, fullName, 
                 email.isEmpty() ? null : email, 
                 phone.isEmpty() ? null : phone, 
@@ -276,8 +302,7 @@ public class LoginController {
         
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                // Registration is handled in event filter
-                return new User(); // Return dummy user to close dialog
+                return new User();
             }
             return null;
         });
@@ -286,7 +311,10 @@ public class LoginController {
     }
     
     /**
-     * Show alert dialog
+     * Show alert dialog.
+     * @param type The alert type
+     * @param title The alert title
+     * @param message The alert message
      */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
@@ -297,7 +325,8 @@ public class LoginController {
     }
     
     /**
-     * Show error message
+     * Show error message.
+     * @param message The error message to display
      */
     private void showError(String message) {
         errorLabel.setText(message);

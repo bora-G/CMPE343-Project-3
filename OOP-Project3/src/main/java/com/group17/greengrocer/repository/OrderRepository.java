@@ -15,12 +15,18 @@ import java.util.List;
 public class OrderRepository {
     private final DatabaseAdapter dbAdapter;
     
+    /**
+     * Constructor for OrderRepository.
+     */
     public OrderRepository() {
         this.dbAdapter = DatabaseAdapter.getInstance();
     }
     
     /**
-     * Find order by ID
+     * Find order by ID.
+     * @param orderId The order ID to search for
+     * @return The Order object if found, null otherwise
+     * @throws SQLException if database access error occurs
      */
     public Order findById(int orderId) throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE orderId = ?";
@@ -40,7 +46,10 @@ public class OrderRepository {
     }
     
     /**
-     * Get all orders for a customer
+     * Get all orders for a customer.
+     * @param customerId The customer ID to filter by
+     * @return List of orders for the specified customer, sorted by order date descending
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findByCustomerId(int customerId) throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE customerId = ? ORDER BY orderDate DESC";
@@ -61,7 +70,9 @@ public class OrderRepository {
     }
     
     /**
-     * Get all orders (for owner)
+     * Get all orders (for owner).
+     * @return List of all orders, sorted by order date descending
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findAll() throws SQLException {
         String sql = "SELECT * FROM OrderInfo ORDER BY orderDate DESC";
@@ -79,7 +90,9 @@ public class OrderRepository {
     }
     
     /**
-     * Get all available orders (Pending status, no carrier assigned)
+     * Get all available orders (Pending status, no carrier assigned).
+     * @return List of available orders for carriers to accept
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findAvailableOrders() throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE status = 'Pending' AND carrierId IS NULL ORDER BY orderDate";
@@ -97,7 +110,10 @@ public class OrderRepository {
     }
     
     /**
-     * Get orders assigned to a carrier
+     * Get orders assigned to a carrier.
+     * @param carrierId The carrier ID to filter by
+     * @return List of orders assigned to the carrier with status Assigned or InTransit
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findByCarrierId(int carrierId) throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE carrierId = ? AND status IN ('Assigned', 'InTransit') ORDER BY orderDate";
@@ -118,7 +134,10 @@ public class OrderRepository {
     }
     
     /**
-     * Get completed orders for a carrier
+     * Get completed orders for a carrier.
+     * @param carrierId The carrier ID to filter by
+     * @return List of delivered orders for the carrier, sorted by delivery date descending
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findCompletedOrdersByCarrier(int carrierId) throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE carrierId = ? AND status = 'Delivered' ORDER BY deliveryDate DESC";
@@ -139,7 +158,9 @@ public class OrderRepository {
     }
     
     /**
-     * Get all delivered orders (for owner reports)
+     * Get all delivered orders (for owner reports).
+     * @return List of all delivered orders, sorted by delivery date descending
+     * @throws SQLException if database access error occurs
      */
     public List<Order> findAllDeliveredOrders() throws SQLException {
         String sql = "SELECT * FROM OrderInfo WHERE status = 'Delivered' ORDER BY deliveryDate DESC";
@@ -157,7 +178,10 @@ public class OrderRepository {
     }
     
     /**
-     * Get completed orders count for a customer (for loyalty discount)
+     * Get completed orders count for a customer (for loyalty discount).
+     * @param customerId The customer ID to count orders for
+     * @return The number of delivered orders for the customer
+     * @throws SQLException if database access error occurs
      */
     public int getCompletedOrdersCountByCustomer(int customerId) throws SQLException {
         String sql = "SELECT COUNT(*) FROM OrderInfo WHERE customerId = ? AND status = 'Delivered'";
@@ -177,7 +201,11 @@ public class OrderRepository {
     }
     
     /**
-     * Cancel order by customer (within cancellation time frame)
+     * Cancel order by customer (within cancellation time frame).
+     * @param orderId The order ID to cancel
+     * @param customerId The customer ID to verify ownership
+     * @return true if order was cancelled successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean cancelOrderByCustomer(int orderId, int customerId) throws SQLException {
         String sql = "UPDATE OrderInfo SET status = 'Cancelled' " +
@@ -195,12 +223,15 @@ public class OrderRepository {
     }
     
     /**
-     * Create a new order
+     * Create a new order.
+     * @param order The Order object to create
+     * @return true if order was created successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean create(Order order) throws SQLException {
         String sql = "INSERT INTO OrderInfo (customerId, carrierId, orderDate, deliveryDate, subtotal, vatAmount, " +
-                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, couponCode, canCancelUntil) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, invoicePdf, couponCode, canCancelUntil) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -225,11 +256,12 @@ public class OrderRepository {
             stmt.setString(10, order.getStatus());
             stmt.setString(11, order.getDeliveryAddress());
             stmt.setString(12, order.getInvoicePath());
-            stmt.setString(13, order.getCouponCode());
+            stmt.setNull(13, Types.BLOB);
+            stmt.setString(14, order.getCouponCode());
             if (order.getCanCancelUntil() != null) {
-                stmt.setTimestamp(14, Timestamp.valueOf(order.getCanCancelUntil()));
+                stmt.setTimestamp(15, Timestamp.valueOf(order.getCanCancelUntil()));
             } else {
-                stmt.setNull(14, Types.TIMESTAMP);
+                stmt.setNull(15, Types.TIMESTAMP);
             }
             
             int rowsAffected = stmt.executeUpdate();
@@ -247,7 +279,10 @@ public class OrderRepository {
     }
     
     /**
-     * Update order information
+     * Update order information.
+     * @param order The Order object with updated information
+     * @return true if order was updated successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean update(Order order) throws SQLException {
         String sql = "UPDATE OrderInfo SET customerId = ?, carrierId = ?, orderDate = ?, deliveryDate = ?, " +
@@ -279,7 +314,11 @@ public class OrderRepository {
     }
     
     /**
-     * Assign carrier to order (with transaction to prevent multiple assignments)
+     * Assign carrier to order (with transaction to prevent multiple assignments).
+     * @param orderId The order ID to assign
+     * @param carrierId The carrier ID to assign to the order
+     * @return true if carrier was assigned successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean assignCarrier(int orderId, int carrierId) throws SQLException {
         String sql = "UPDATE OrderInfo SET carrierId = ?, status = 'Assigned' " +
@@ -296,7 +335,10 @@ public class OrderRepository {
     }
     
     /**
-     * Mark order as completed
+     * Mark order as completed.
+     * @param orderId The order ID to mark as completed
+     * @return true if order was marked as completed successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean markAsCompleted(int orderId) throws SQLException {
         String sql = "UPDATE OrderInfo SET status = 'Delivered', deliveryDate = NOW() WHERE orderId = ?";
@@ -310,7 +352,11 @@ public class OrderRepository {
     }
     
     /**
-     * Mark order as completed with specific delivery date
+     * Mark order as completed with specific delivery date.
+     * @param orderId The order ID to mark as completed
+     * @param deliveryDate The delivery date to set
+     * @return true if order was marked as completed successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean markAsCompletedWithDate(int orderId, LocalDateTime deliveryDate) throws SQLException {
         String sql = "UPDATE OrderInfo SET status = 'Delivered', deliveryDate = ? WHERE orderId = ?";
@@ -325,8 +371,12 @@ public class OrderRepository {
     }
     
     /**
-     * Cancel order by carrier (return to Pending status and remove carrier assignment)
-     * Only allows cancellation if order is assigned to the specified carrier
+     * Cancel order by carrier (return to Pending status and remove carrier assignment).
+     * Only allows cancellation if order is assigned to the specified carrier.
+     * @param orderId The order ID to cancel
+     * @param carrierId The carrier ID to verify ownership
+     * @return true if order was cancelled successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean cancelOrderByCarrier(int orderId, int carrierId) throws SQLException {
         String sql = "UPDATE OrderInfo SET status = 'Pending', carrierId = NULL " +
@@ -343,7 +393,58 @@ public class OrderRepository {
     }
     
     /**
-     * Update invoice path for order
+     * Save invoice PDF to database as LONGBLOB.
+     * @param orderId The order ID to save the PDF for
+     * @param pdfBytes The PDF file as byte array
+     * @return true if PDF was saved successfully, false otherwise
+     * @throws SQLException if database access error occurs
+     */
+    public boolean saveInvoicePDF(int orderId, byte[] pdfBytes) throws SQLException {
+        String sql = "UPDATE OrderInfo SET invoicePdf = ? WHERE orderId = ?";
+        
+        try (Connection conn = dbAdapter.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            if (pdfBytes != null) {
+                stmt.setBytes(1, pdfBytes);
+            } else {
+                stmt.setNull(1, Types.BLOB);
+            }
+            stmt.setInt(2, orderId);
+            
+            return stmt.executeUpdate() > 0;
+        }
+    }
+    
+    /**
+     * Get invoice PDF from database.
+     * @param orderId The order ID to get the PDF for
+     * @return The PDF file as byte array, or null if not found
+     * @throws SQLException if database access error occurs
+     */
+    public byte[] getInvoicePDF(int orderId) throws SQLException {
+        String sql = "SELECT invoicePdf FROM OrderInfo WHERE orderId = ?";
+        
+        try (Connection conn = dbAdapter.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            
+            stmt.setInt(1, orderId);
+            
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getBytes("invoicePdf");
+                }
+            }
+        }
+        return null;
+    }
+    
+    /**
+     * Update invoice path for order (legacy support).
+     * @param orderId The order ID to update
+     * @param invoicePath The invoice file path
+     * @return true if invoice path was updated successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean updateInvoicePath(int orderId, String invoicePath) throws SQLException {
         String sql = "UPDATE OrderInfo SET invoicePath = ? WHERE orderId = ?";
@@ -359,7 +460,10 @@ public class OrderRepository {
     }
     
     /**
-     * Map ResultSet to Order object
+     * Map ResultSet to Order object.
+     * @param rs The ResultSet containing order data
+     * @return The mapped Order object
+     * @throws SQLException if database access error occurs
      */
     private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
         Order order = new Order();
@@ -378,11 +482,9 @@ public class OrderRepository {
             order.setDeliveryDate(deliveryDate.toLocalDateTime());
         }
         
-        // Handle new fields (with backward compatibility)
         try {
             order.setSubtotal(rs.getBigDecimal("subtotal"));
         } catch (SQLException e) {
-            // Field doesn't exist in old schema, calculate from totalCost
             order.setSubtotal(rs.getBigDecimal("totalCost"));
         }
         

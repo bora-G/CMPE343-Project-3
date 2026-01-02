@@ -9,12 +9,19 @@ import java.sql.SQLException;
 public class MessageService {
     private final MessageRepository messageRepository;
     
+    /**
+     * Constructor for MessageService.
+     */
     public MessageService() {
         this.messageRepository = new MessageRepository();
     }
     
     /**
-     * Send a message to the owner
+     * Send a message to the owner.
+     * @param customerId The customer ID sending the message
+     * @param subject The message subject
+     * @param message The message content
+     * @return true if message was sent successfully, false otherwise
      */
     public boolean sendMessageToOwner(int customerId, String subject, String message) {
         try {

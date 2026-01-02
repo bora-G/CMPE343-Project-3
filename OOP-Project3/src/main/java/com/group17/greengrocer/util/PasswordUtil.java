@@ -13,6 +13,8 @@ public class PasswordUtil {
      * Hash a plain text password using SHA-256.
      * @param plainPassword The plain text password to hash
      * @return The hashed password (SHA-256 hash as hexadecimal string, 64 characters)
+     * @throws IllegalArgumentException if password is null or empty
+     * @throws RuntimeException if SHA-256 algorithm is not available
      */
     public static String hashPassword(String plainPassword) {
         if (plainPassword == null || plainPassword.isEmpty()) {
@@ -23,7 +25,6 @@ public class PasswordUtil {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] hashBytes = digest.digest(plainPassword.getBytes());
             
-            // Convert byte array to hexadecimal string
             StringBuilder hexString = new StringBuilder();
             for (byte b : hashBytes) {
                 String hex = Integer.toHexString(0xff & b);
@@ -54,7 +55,6 @@ public class PasswordUtil {
             String computedHash = hashPassword(plainPassword);
             return computedHash.equalsIgnoreCase(hashedPassword);
         } catch (Exception e) {
-            // If hashing fails, return false
             return false;
         }
     }
@@ -69,8 +69,6 @@ public class PasswordUtil {
         if (password == null || password.length() != 64) {
             return false;
         }
-        // Check if it's a valid hexadecimal string (64 characters)
         return password.matches("^[0-9a-fA-F]{64}$");
     }
 }
-

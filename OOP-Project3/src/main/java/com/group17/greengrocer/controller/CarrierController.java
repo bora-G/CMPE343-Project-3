@@ -38,7 +38,6 @@ public class CarrierController implements Initializable {
     @FXML
     private TabPane mainTabPane;
     
-    // Available Orders Table
     @FXML
     private TableView<Order> availableOrdersTable;
     
@@ -66,7 +65,6 @@ public class CarrierController implements Initializable {
     @FXML
     private Button selectMultipleButton;
     
-    // Current Orders Table
     @FXML
     private TableView<Order> currentOrdersTable;
     
@@ -88,7 +86,6 @@ public class CarrierController implements Initializable {
     @FXML
     private TableColumn<Order, Void> completeColumn;
     
-    // Completed Orders Table
     @FXML
     private TableView<Order> completedOrdersTable;
     
@@ -125,20 +122,24 @@ public class CarrierController implements Initializable {
         currentOrders = FXCollections.observableArrayList();
         completedOrders = FXCollections.observableArrayList();
         
-        // Set welcome message
         if (authService.getCurrentUser() != null) {
             welcomeLabel.setText("Welcome, " + authService.getCurrentUser().getFullName());
         }
         
         setupTables();
         loadData();
+        
+        if (mainTabPane != null) {
+            for (Tab tab : mainTabPane.getTabs()) {
+                tab.setClosable(false);
+            }
+        }
     }
     
     /**
-     * Setup all tables
+     * Setup all tables.
      */
     private void setupTables() {
-        // Available Orders Table
         orderIdColumn1.setCellValueFactory(new PropertyValueFactory<>("orderId"));
         customerNameColumn1.setCellValueFactory(cellData -> {
             try {
@@ -190,12 +191,10 @@ public class CarrierController implements Initializable {
             }
         });
         
-        // Enable multiple selection for available orders
         availableOrdersTable.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
         
         availableOrdersTable.setItems(availableOrders);
         
-        // Current Orders Table
         orderIdColumn2.setCellValueFactory(new PropertyValueFactory<>("orderId"));
         customerNameColumn2.setCellValueFactory(cellData -> {
             try {
@@ -221,13 +220,11 @@ public class CarrierController implements Initializable {
             private final Button cancelButton = new Button("Cancel");
             
             {
-                // Set button sizes
                 completeButton.setPrefWidth(80);
                 completeButton.setMinWidth(80);
                 cancelButton.setPrefWidth(80);
                 cancelButton.setMinWidth(80);
                 
-                // Set button box alignment
                 buttonBox.setAlignment(javafx.geometry.Pos.CENTER);
                 
                 buttonBox.getChildren().addAll(completeButton, cancelButton);
@@ -254,7 +251,6 @@ public class CarrierController implements Initializable {
         
         currentOrdersTable.setItems(currentOrders);
         
-        // Completed Orders Table
         orderIdColumn3.setCellValueFactory(new PropertyValueFactory<>("orderId"));
         customerNameColumn3.setCellValueFactory(cellData -> {
             try {
@@ -278,7 +274,7 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Load data for all tables
+     * Load data for all tables.
      */
     private void loadData() {
         availableOrders.setAll(orderService.getAvailableOrders());
@@ -287,9 +283,16 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle select order action
+     * Handle select order action.
+     * @param order The order to select
      */
     private void handleSelectOrder(Order order) {
+        if (order.getDeliveryDate() != null && order.getDeliveryDate().isBefore(java.time.LocalDateTime.now())) {
+            showAlert(Alert.AlertType.ERROR, "Cannot Accept Order", 
+                "Cannot accept this order because the requested delivery date is in the past.");
+            return;
+        }
+        
         if (orderService.assignOrderToCarrier(order.getOrderId())) {
             showAlert(Alert.AlertType.INFORMATION, "Success", 
                 "Order " + order.getOrderId() + " assigned to you successfully!");
@@ -302,11 +305,11 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle view order details action
+     * Handle view order details action.
+     * @param order The order to view details for
      */
     private void handleViewOrderDetails(Order order) {
         try {
-            // Load order items
             Order fullOrder = orderService.getOrderById(order.getOrderId());
             if (fullOrder == null) {
                 showAlert(Alert.AlertType.ERROR, "Error", "Order not found.");
@@ -362,7 +365,7 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle select multiple orders action
+     * Handle select multiple orders action.
      */
     @FXML
     private void handleSelectMultipleOrders() {
@@ -373,10 +376,21 @@ public class CarrierController implements Initializable {
         }
         
         int successCount = 0;
+        int skippedCount = 0;
         for (Order order : selectedOrders) {
+            if (order.getDeliveryDate() != null && order.getDeliveryDate().isBefore(java.time.LocalDateTime.now())) {
+                skippedCount++;
+                continue;
+            }
+            
             if (orderService.assignOrderToCarrier(order.getOrderId())) {
                 successCount++;
             }
+        }
+        
+        if (skippedCount > 0) {
+            showAlert(Alert.AlertType.WARNING, "Some Orders Skipped", 
+                skippedCount + " order(s) were skipped because their delivery dates are in the past.");
         }
         
         if (successCount > 0) {
@@ -391,10 +405,10 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle complete order action
+     * Handle complete order action.
+     * @param order The order to complete
      */
     private void handleCompleteOrder(Order order) {
-        // Show dialog to enter delivery date
         Dialog<java.time.LocalDateTime> dialog = new Dialog<>();
         dialog.setTitle("Complete Order");
         dialog.setHeaderText("Enter delivery date and time for Order " + order.getOrderId());
@@ -424,14 +438,45 @@ public class CarrierController implements Initializable {
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         
+        javafx.scene.control.Button okButton = (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
+        okButton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
+            LocalDate date = datePicker.getValue();
+            Integer hour = hourComboBox.getValue();
+            Integer minute = minuteComboBox.getValue();
+            
+            if (date == null || hour == null || minute == null) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please select date and time.");
+                e.consume();
+                return;
+            }
+            
+            LocalDateTime deliveryDateTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
+            
+            if (deliveryDateTime.isBefore(LocalDateTime.now())) {
+                showAlert(Alert.AlertType.ERROR, "Invalid Date", 
+                    "Delivery date cannot be in the past.");
+                e.consume();
+                return;
+            }
+        });
+        
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                java.time.LocalDate date = datePicker.getValue();
+                LocalDate date = datePicker.getValue();
                 Integer hour = hourComboBox.getValue();
                 Integer minute = minuteComboBox.getValue();
-                if (date != null && hour != null && minute != null) {
-                    return java.time.LocalDateTime.of(date, java.time.LocalTime.of(hour, minute));
+                
+                if (date == null || hour == null || minute == null) {
+                    return null;
                 }
+                
+                LocalDateTime deliveryDateTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
+                
+                if (deliveryDateTime.isBefore(LocalDateTime.now())) {
+                    return null;
+                }
+                
+                return deliveryDateTime;
             }
             return null;
         });
@@ -448,7 +493,8 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle cancel order action
+     * Handle cancel order action.
+     * @param order The order to cancel
      */
     private void handleCancelOrder(Order order) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
@@ -473,7 +519,7 @@ public class CarrierController implements Initializable {
     }
     
     /**
-     * Handle logout action
+     * Handle logout action.
      */
     @FXML
     private void handleLogout() {
@@ -483,8 +529,10 @@ public class CarrierController implements Initializable {
             Parent root = loader.load();
             Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
+            stage.setFullScreen(false);
             stage.setScene(scene);
             stage.setTitle("Login");
+            stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

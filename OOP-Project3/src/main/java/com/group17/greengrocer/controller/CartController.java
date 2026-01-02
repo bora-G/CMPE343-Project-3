@@ -105,7 +105,7 @@ public class CartController implements Initializable {
     private String appliedCouponCode = null;
     
     // Business rules
-    private static final BigDecimal MIN_CART_VALUE = new BigDecimal("50.00"); // Minimum 50 TL
+    private static final BigDecimal MIN_CART_VALUE = new BigDecimal("200.00"); // Minimum 200 TL
     private static final BigDecimal VAT_RATE = new BigDecimal("0.20"); // 20% VAT
     
     @Override
@@ -117,7 +117,6 @@ public class CartController implements Initializable {
         loyaltyService = new LoyaltyService();
         cartItems = FXCollections.observableArrayList();
         
-        // Initialize delivery time comboboxes
         for (int i = 0; i < 24; i++) {
             deliveryHourComboBox.getItems().add(i);
         }
@@ -125,7 +124,6 @@ public class CartController implements Initializable {
             deliveryMinuteComboBox.getItems().add(i);
         }
         
-        // Set default values
         deliveryDatePicker.setValue(LocalDate.now().plusDays(1));
         deliveryHourComboBox.setValue(10);
         deliveryMinuteComboBox.setValue(0);
@@ -134,16 +132,15 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Set cart items from customer controller
+     * Set cart items from customer controller.
+     * @param items The list of order items to set
      */
     public void setCartItems(List<OrderItem> items) {
-        // Load product information for each item and update prices based on threshold
         for (OrderItem item : items) {
             try {
                 Product product = productRepository.findById(item.getProductId());
                 item.setProduct(product);
                 
-                // Update price based on current stock and threshold rule
                 if (product != null) {
                     BigDecimal displayPrice = productService.getDisplayPrice(product);
                     item.setUnitPrice(displayPrice);
@@ -158,7 +155,7 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Setup table columns
+     * Setup table columns.
      */
     private void setupTable() {
         productNameColumn.setCellValueFactory(cellData -> {
@@ -171,7 +168,6 @@ public class CartController implements Initializable {
         unitPriceColumn.setCellValueFactory(new PropertyValueFactory<>("unitPrice"));
         subtotalColumn.setCellValueFactory(new PropertyValueFactory<>("subtotal"));
         
-        // Remove column with button
         removeColumn.setCellFactory(param -> new TableCell<OrderItem, Void>() {
             private final Button removeButton = new Button("Remove");
             
@@ -198,31 +194,27 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Update total and all cost breakdown labels
+     * Update total and all cost breakdown labels.
      */
     private void updateTotal() {
-        // Calculate subtotal
         subtotal = BigDecimal.ZERO;
         for (OrderItem item : cartItems) {
             subtotal = subtotal.add(item.getSubtotal());
         }
         
-        // Calculate VAT (20% of subtotal)
         vatAmount = subtotal.multiply(VAT_RATE);
         
-        // Calculate loyalty discount (5% if customer has 5+ completed orders)
         int completedOrdersCount = loyaltyService.getCompletedOrdersCount(
             com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
         loyaltyDiscount = BigDecimal.ZERO;
-        if (completedOrdersCount >= 5) {
-            // 5% loyalty discount
-            loyaltyDiscount = subtotal.multiply(new BigDecimal("0.05"));
+        int threshold = com.group17.greengrocer.service.LoyaltyService.getLoyaltyThreshold();
+        BigDecimal discountPercent = com.group17.greengrocer.service.LoyaltyService.getLoyaltyDiscountPercent();
+        if (completedOrdersCount >= threshold) {
+            loyaltyDiscount = subtotal.multiply(discountPercent).divide(new BigDecimal("100"), 2, java.math.RoundingMode.HALF_UP);
         }
         
-        // Calculate total (subtotal + VAT - discounts)
         total = subtotal.add(vatAmount).subtract(couponDiscount).subtract(loyaltyDiscount);
         
-        // Update labels
         subtotalLabel.setText("₺" + subtotal.setScale(2, java.math.RoundingMode.HALF_UP));
         vatLabel.setText("₺" + vatAmount.setScale(2, java.math.RoundingMode.HALF_UP));
         couponDiscountLabel.setText(couponDiscount.compareTo(BigDecimal.ZERO) > 0 ? 
@@ -233,7 +225,7 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Handle apply coupon action
+     * Handle apply coupon action.
      */
     @FXML
     private void handleApplyCoupon() {
@@ -258,26 +250,23 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Handle checkout action
+     * Handle checkout action.
      */
     @FXML
     private void handleCheckout() {
         errorLabel.setVisible(false);
         
-        // Validate minimum cart value
-        if (subtotal.compareTo(MIN_CART_VALUE) < 0) {
-            showError("Minimum cart value is ₺" + MIN_CART_VALUE + ". Please add more items.");
+        if (total.compareTo(MIN_CART_VALUE) < 0) {
+            showError("Minimum sepet tutarı ₺200.00'dir. Lütfen sepetinize daha fazla ürün ekleyin.");
             return;
         }
         
-        // Validate delivery address
         String address = deliveryAddressField.getText().trim();
         if (address.isEmpty()) {
             showError("Please enter delivery address.");
             return;
         }
         
-        // Validate delivery date and time
         LocalDate date = deliveryDatePicker.getValue();
         Integer hour = deliveryHourComboBox.getValue();
         Integer minute = deliveryMinuteComboBox.getValue();
@@ -289,18 +278,15 @@ public class CartController implements Initializable {
         
         LocalDateTime deliveryDateTime = LocalDateTime.of(date, LocalTime.of(hour, minute));
         
-        // Validate delivery is within 48 hours
         if (!orderService.isValidDeliveryDate(deliveryDateTime)) {
             showError("Delivery date must be within 48 hours from now.");
             return;
         }
         
-        // Show order summary before finalizing
         if (!showOrderSummary(address, deliveryDateTime)) {
-            return; // User cancelled
+            return;
         }
         
-        // Create order
         Order order = new Order();
         order.setCustomerId(com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
         order.setDeliveryAddress(address);
@@ -311,26 +297,35 @@ public class CartController implements Initializable {
         order.setLoyaltyDiscount(loyaltyDiscount);
         order.setTotalCost(total);
         order.setCouponCode(appliedCouponCode);
-        // Allow cancellation within 2 hours
         order.setCanCancelUntil(LocalDateTime.now().plusHours(2));
         
         List<OrderItem> items = new ArrayList<>(cartItems);
-        order.setItems(items); // Set items for invoice generation
+        order.setItems(items);
         
         try {
             if (orderService.createOrderWithDetails(order, items, deliveryDateTime)) {
-                // Mark coupon as used if applied
                 if (appliedCouponCode != null) {
                     couponService.markCouponAsUsed(appliedCouponCode, 
                         com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
                 }
                 
-                // Generate PDF invoice
-                String invoicePath = orderService.generateInvoicePDF(order);
-                orderService.saveInvoicePath(order.getOrderId(), invoicePath);
-                
-                // Show invoice download option
-                showInvoiceDownload(order.getOrderId(), invoicePath);
+                byte[] pdfBytes = orderService.generateInvoicePDF(order);
+                if (pdfBytes != null) {
+                    orderService.saveInvoicePDF(order.getOrderId(), pdfBytes);
+                    String invoicePath = "invoices/order_" + order.getOrderId() + ".pdf";
+                    java.io.File dir = new java.io.File("invoices");
+                    if (!dir.exists()) dir.mkdirs();
+                    try (java.io.FileOutputStream fos = new java.io.FileOutputStream(invoicePath)) {
+                        fos.write(pdfBytes);
+                    } catch (java.io.IOException e) {
+                        System.err.println("Error saving invoice file: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                    orderService.saveInvoicePath(order.getOrderId(), invoicePath);
+                    showInvoiceDownload(order.getOrderId(), invoicePath);
+                } else {
+                    showAlert(Alert.AlertType.ERROR, "Error", "Failed to generate invoice PDF.");
+                }
                 
                 showAlert(Alert.AlertType.INFORMATION, "Success", 
                     "Order placed successfully! Order ID: " + order.getOrderId());
@@ -344,7 +339,10 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Show order summary dialog before finalizing purchase
+     * Show order summary dialog before finalizing purchase.
+     * @param address The delivery address
+     * @param deliveryDateTime The delivery date and time
+     * @return true if user confirms, false if cancelled
      */
     private boolean showOrderSummary(String address, LocalDateTime deliveryDateTime) {
         Alert summaryAlert = new Alert(Alert.AlertType.CONFIRMATION);
@@ -376,7 +374,9 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Show invoice download dialog
+     * Show invoice download dialog.
+     * @param orderId The order ID
+     * @param invoicePath The path to the invoice file
      */
     private void showInvoiceDownload(int orderId, String invoicePath) {
         Alert invoiceAlert = new Alert(Alert.AlertType.INFORMATION);
@@ -388,7 +388,7 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Handle close action
+     * Handle close action.
      */
     @FXML
     private void handleClose() {
@@ -397,7 +397,8 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Show error message
+     * Show error message.
+     * @param message The error message to display
      */
     private void showError(String message) {
         errorLabel.setText(message);
@@ -405,7 +406,10 @@ public class CartController implements Initializable {
     }
     
     /**
-     * Show alert dialog
+     * Show alert dialog.
+     * @param type The alert type
+     * @param title The alert title
+     * @param message The alert message
      */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);

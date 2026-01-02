@@ -13,12 +13,20 @@ import java.util.List;
 public class MessageRepository {
     private final DatabaseAdapter dbAdapter;
     
+    /**
+     * Constructor for MessageRepository.
+     */
     public MessageRepository() {
         this.dbAdapter = DatabaseAdapter.getInstance();
     }
     
     /**
-     * Create a new message (to owner)
+     * Create a new message (to owner).
+     * @param customerId The customer ID sending the message
+     * @param subject The message subject
+     * @param message The message content
+     * @return true if message was created successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean create(int customerId, String subject, String message) throws SQLException {
         String sql = "INSERT INTO Message (customerId, ownerId, subject, message) " +
@@ -36,7 +44,9 @@ public class MessageRepository {
     }
     
     /**
-     * Get all messages
+     * Get all messages.
+     * @return List of all messages, sorted by creation date descending
+     * @throws SQLException if database access error occurs
      */
     public List<Message> findAll() throws SQLException {
         String sql = "SELECT * FROM Message ORDER BY createdAt DESC";
@@ -54,7 +64,11 @@ public class MessageRepository {
     }
     
     /**
-     * Reply to a message (mark as read and add reply)
+     * Reply to a message (mark as read and add reply).
+     * @param messageId The message ID to reply to
+     * @param reply The reply content (currently only marks as read)
+     * @return true if message was updated successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean reply(int messageId, String reply) throws SQLException {
         String sql = "UPDATE Message SET isRead = TRUE WHERE messageId = ?";
@@ -68,7 +82,10 @@ public class MessageRepository {
     }
     
     /**
-     * Map ResultSet to Message object
+     * Map ResultSet to Message object.
+     * @param rs The ResultSet containing message data
+     * @return The mapped Message object
+     * @throws SQLException if database access error occurs
      */
     private Message mapResultSetToMessage(ResultSet rs) throws SQLException {
         Message message = new Message();

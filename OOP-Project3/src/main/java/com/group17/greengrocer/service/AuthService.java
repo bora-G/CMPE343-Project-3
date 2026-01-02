@@ -14,6 +14,9 @@ public class AuthService {
     private final UserRepository userRepository;
     private final Session session;
     
+    /**
+     * Constructor for AuthService.
+     */
     public AuthService() {
         this.userRepository = new UserRepository();
         this.session = Session.getInstance();
@@ -44,28 +47,32 @@ public class AuthService {
     }
     
     /**
-     * Logout current user
+     * Logout current user.
      */
     public void logout() {
         session.clear();
     }
     
     /**
-     * Get current logged-in user
+     * Get current logged-in user.
+     * @return The current User object, or null if not logged in
      */
     public User getCurrentUser() {
         return session.getCurrentUser();
     }
     
     /**
-     * Check if user is logged in
+     * Check if user is logged in.
+     * @return true if user is logged in, false otherwise
      */
     public boolean isLoggedIn() {
         return session.isLoggedIn();
     }
     
     /**
-     * Check if current user has specific role
+     * Check if current user has specific role.
+     * @param role The role to check (Customer, Carrier, or Owner)
+     * @return true if user has the specified role, false otherwise
      */
     public boolean hasRole(String role) {
         return session.hasRole(role);
@@ -84,12 +91,10 @@ public class AuthService {
      */
     public String registerCustomer(String username, String password, String fullName, 
                                    String email, String phone, String address) {
-        // Validate username
         if (!Validation.isValidUsername(username)) {
             return "Username must be 3-50 characters and contain only letters, numbers, and underscores.";
         }
         
-        // Check if username already exists
         try {
             User existingUser = userRepository.findByUsername(username);
             if (existingUser != null) {
@@ -100,32 +105,26 @@ public class AuthService {
             return "Error checking username availability.";
         }
         
-        // Validate strong password
         if (!Validation.isStrongPassword(password)) {
             return "Password must be at least 8 characters and contain uppercase, lowercase, and a digit.";
         }
         
-        // Validate full name
         if (!Validation.isValidFullName(fullName)) {
             return "Full name must contain only letters and spaces (no numbers).";
         }
         
-        // Validate email if provided
         if (email != null && !email.trim().isEmpty()) {
             if (!Validation.isValidEmailFormat(email)) {
                 return "Invalid email format.";
             }
         }
         
-        // Validate phone if provided
         if (phone != null && !phone.trim().isEmpty()) {
             if (!Validation.isValidPhone(phone)) {
                 return "Phone must be exactly 10 digits starting with 5 (e.g., 5372440233).";
             }
         }
         
-        // Create new customer user
-        // Note: Password will be automatically hashed by UserRepository.create()
         User newUser = new User();
         newUser.setUsername(username.trim());
         newUser.setPassword(password); // Will be hashed in repository
@@ -136,10 +135,9 @@ public class AuthService {
         newUser.setAddress(address != null ? address.trim() : null);
         newUser.setActive(true);
         
-        // Save to database (password will be hashed automatically)
         try {
             if (userRepository.create(newUser)) {
-                return "SUCCESS"; // Special success marker
+                return "SUCCESS";
             } else {
                 return "Failed to create account. Please try again.";
             }
@@ -164,26 +162,22 @@ public class AuthService {
             return "No user logged in.";
         }
         
-        // Validate full name
         if (!Validation.isValidFullName(fullName)) {
             return "Full name must contain only letters and spaces (no numbers).";
         }
         
-        // Validate email if provided
         if (email != null && !email.trim().isEmpty()) {
             if (!Validation.isValidEmailFormat(email)) {
                 return "Invalid email format.";
             }
         }
         
-        // Validate phone if provided
         if (phone != null && !phone.trim().isEmpty()) {
             if (!Validation.isValidPhone(phone)) {
                 return "Phone must be exactly 10 digits starting with 5 (e.g., 5372440233).";
             }
         }
         
-        // Update user information
         currentUser.setFullName(fullName.trim());
         currentUser.setEmail(email != null ? email.trim() : null);
         currentUser.setPhone(phone != null ? phone.trim() : null);
@@ -191,8 +185,8 @@ public class AuthService {
         
         try {
             if (userRepository.update(currentUser)) {
-                session.setCurrentUser(currentUser); // Update session
-                return "SUCCESS"; // Special success marker
+                session.setCurrentUser(currentUser);
+                return "SUCCESS";
             } else {
                 return "Failed to update profile. Please try again.";
             }

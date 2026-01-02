@@ -13,12 +13,22 @@ import java.util.List;
 public class RatingRepository {
     private final DatabaseAdapter dbAdapter;
     
+    /**
+     * Constructor for RatingRepository.
+     */
     public RatingRepository() {
         this.dbAdapter = DatabaseAdapter.getInstance();
     }
     
     /**
-     * Create a new rating
+     * Create a new rating.
+     * @param orderId The order ID associated with the rating
+     * @param carrierId The carrier ID being rated
+     * @param customerId The customer ID giving the rating
+     * @param rating The rating value (1-5)
+     * @param comment The optional comment
+     * @return true if rating was created successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean create(int orderId, int carrierId, int customerId, int rating, String comment) throws SQLException {
         String sql = "INSERT INTO CarrierRating (orderId, carrierId, customerId, rating, comment) " +
@@ -38,7 +48,9 @@ public class RatingRepository {
     }
     
     /**
-     * Get all ratings
+     * Get all ratings.
+     * @return List of all carrier ratings, sorted by creation date descending
+     * @throws SQLException if database access error occurs
      */
     public List<CarrierRating> findAll() throws SQLException {
         String sql = "SELECT * FROM CarrierRating ORDER BY createdAt DESC";
@@ -56,7 +68,10 @@ public class RatingRepository {
     }
     
     /**
-     * Map ResultSet to CarrierRating object
+     * Map ResultSet to CarrierRating object.
+     * @param rs The ResultSet containing rating data
+     * @return The mapped CarrierRating object
+     * @throws SQLException if database access error occurs
      */
     private CarrierRating mapResultSetToRating(ResultSet rs) throws SQLException {
         CarrierRating rating = new CarrierRating();

@@ -7,10 +7,17 @@ import com.group17.greengrocer.repository.OrderItemRepository;
 import com.group17.greengrocer.repository.OrderRepository;
 import com.group17.greengrocer.repository.ProductRepository;
 import com.group17.greengrocer.util.Session;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.font.PDType1Font;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 /**
@@ -23,9 +30,11 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final Session session;
     
-    // Business rule: Delivery must be within 48 hours
     private static final int MAX_DELIVERY_HOURS = 48;
     
+    /**
+     * Constructor for OrderService.
+     */
     public OrderService() {
         this.orderRepository = new OrderRepository();
         this.orderItemRepository = new OrderItemRepository();
@@ -34,11 +43,11 @@ public class OrderService {
     }
     
     /**
-     * Calculate price for a product based on stock and threshold rule
-     * Rule: If stock <= threshold, price doubles
+     * Calculate price for a product based on stock and threshold rule.
+     * Rule: If stock &lt;= threshold, price doubles.
      * 
      * @param product The product to calculate price for
-     * @return The unit price (doubled if stock <= threshold, otherwise base price)
+     * @return The unit price (doubled if stock &lt;= threshold, otherwise base price)
      */
     public BigDecimal calculateItemPrice(Product product) {
         if (product == null || product.getPricePerKg() == null) {
@@ -49,17 +58,14 @@ public class OrderService {
         BigDecimal stock = product.getStock();
         BigDecimal threshold = product.getThreshold();
         
-        // If threshold is null, use default threshold of 5.0
         if (threshold == null) {
             threshold = new BigDecimal("5.0");
         }
         
-        // If stock is null or zero, return base price
         if (stock == null || stock.compareTo(BigDecimal.ZERO) <= 0) {
             return basePrice;
         }
         
-        // If stock <= threshold, price doubles
         if (stock.compareTo(threshold) <= 0) {
             return basePrice.multiply(new BigDecimal("2"));
         }
@@ -68,7 +74,9 @@ public class OrderService {
     }
     
     /**
-     * Calculate total cost for order items
+     * Calculate total cost for order items.
+     * @param items The list of order items
+     * @return The total cost of all items
      */
     public BigDecimal calculateTotalCost(List<OrderItem> items) {
         BigDecimal total = BigDecimal.ZERO;
@@ -79,7 +87,9 @@ public class OrderService {
     }
     
     /**
-     * Validate delivery date is within 48 hours
+     * Validate delivery date is within 48 hours.
+     * @param deliveryDate The delivery date to validate
+     * @return true if delivery date is valid (within 48 hours from now), false otherwise
      */
     public boolean isValidDeliveryDate(LocalDateTime deliveryDate) {
         if (deliveryDate == null) {
@@ -93,15 +103,18 @@ public class OrderService {
     }
     
     /**
-     * Create a new order with items
+     * Create a new order with items.
+     * @param order The Order object to create
+     * @param items The list of order items
+     * @param deliveryDate The delivery date (must be within 48 hours)
+     * @return true if order was created successfully, false otherwise
+     * @throws IllegalArgumentException if delivery date is invalid or stock is insufficient
      */
     public boolean createOrder(Order order, List<OrderItem> items, LocalDateTime deliveryDate) {
-        // Validate delivery date
         if (!isValidDeliveryDate(deliveryDate)) {
             throw new IllegalArgumentException("Delivery date must be within 48 hours from now");
         }
         
-        // Calculate prices with threshold rule
         for (OrderItem item : items) {
             try {
                 Product product = productRepository.findById(item.getProductId());
@@ -109,12 +122,10 @@ public class OrderService {
                     throw new IllegalArgumentException("Product not found: " + item.getProductId());
                 }
                 
-                // Check stock availability
                 if (product.getStock().compareTo(item.getQuantity()) < 0) {
                     throw new IllegalArgumentException("Insufficient stock for product: " + product.getProductName());
                 }
                 
-                // Calculate price with threshold rule (stock <= threshold means doubled price)
                 BigDecimal unitPrice = calculateItemPrice(product);
                 item.setUnitPrice(unitPrice);
                 item.setSubtotal(unitPrice.multiply(item.getQuantity()));
@@ -125,23 +136,18 @@ public class OrderService {
             }
         }
         
-        // Calculate total cost
         BigDecimal totalCost = calculateTotalCost(items);
         order.setTotalCost(totalCost);
         order.setDeliveryDate(deliveryDate);
         order.setOrderDate(LocalDateTime.now());
         
         try {
-            // Create order in transaction
             if (orderRepository.create(order)) {
-                // Set order ID for items
                 for (OrderItem item : items) {
                     item.setOrderId(order.getOrderId());
                 }
                 
-                // Create order items
                 if (orderItemRepository.createBatch(items)) {
-                    // Update product stock
                     for (OrderItem item : items) {
                         try {
                             Product product = productRepository.findById(item.getProductId());
@@ -163,15 +169,18 @@ public class OrderService {
     }
     
     /**
-     * Create a new order with all details (subtotal, VAT, discounts)
+     * Create a new order with all details (subtotal, VAT, discounts).
+     * @param order The Order object to create with all financial details
+     * @param items The list of order items
+     * @param deliveryDate The delivery date (must be within 48 hours)
+     * @return true if order was created successfully, false otherwise
+     * @throws IllegalArgumentException if delivery date is invalid or stock is insufficient
      */
     public boolean createOrderWithDetails(Order order, List<OrderItem> items, LocalDateTime deliveryDate) {
-        // Validate delivery date
         if (!isValidDeliveryDate(deliveryDate)) {
             throw new IllegalArgumentException("Delivery date must be within 48 hours from now");
         }
         
-        // Calculate prices with threshold rule
         for (OrderItem item : items) {
             try {
                 Product product = productRepository.findById(item.getProductId());
@@ -179,12 +188,10 @@ public class OrderService {
                     throw new IllegalArgumentException("Product not found: " + item.getProductId());
                 }
                 
-                // Check stock availability
                 if (product.getStock().compareTo(item.getQuantity()) < 0) {
                     throw new IllegalArgumentException("Insufficient stock for product: " + product.getProductName());
                 }
                 
-                // Calculate price with threshold rule (stock <= threshold means doubled price)
                 BigDecimal unitPrice = calculateItemPrice(product);
                 item.setUnitPrice(unitPrice);
                 item.setSubtotal(unitPrice.multiply(item.getQuantity()));
@@ -195,23 +202,18 @@ public class OrderService {
             }
         }
         
-        // Order already has subtotal, VAT, discounts, and total set from CartController
         order.setDeliveryDate(deliveryDate);
         if (order.getOrderDate() == null) {
             order.setOrderDate(LocalDateTime.now());
         }
         
         try {
-            // Create order in transaction
             if (orderRepository.create(order)) {
-                // Set order ID for items
                 for (OrderItem item : items) {
                     item.setOrderId(order.getOrderId());
                 }
                 
-                // Create order items
                 if (orderItemRepository.createBatch(items)) {
-                    // Update product stock
                     for (OrderItem item : items) {
                         try {
                             Product product = productRepository.findById(item.getProductId());
@@ -233,13 +235,13 @@ public class OrderService {
     }
     
     /**
-     * Get orders for current customer
+     * Get orders for current customer.
+     * @return List of orders for the current logged-in customer
      */
     public List<Order> getCustomerOrders() {
         int customerId = session.getCurrentUserId();
         try {
             List<Order> orders = orderRepository.findByCustomerId(customerId);
-            // Load order items for each order
             for (Order order : orders) {
                 order.setItems(orderItemRepository.findByOrderId(order.getOrderId()));
             }
@@ -252,7 +254,8 @@ public class OrderService {
     }
     
     /**
-     * Get available orders for carriers
+     * Get available orders for carriers.
+     * @return List of available orders (Pending status, no carrier assigned)
      */
     public List<Order> getAvailableOrders() {
         try {
@@ -265,7 +268,8 @@ public class OrderService {
     }
     
     /**
-     * Get current orders for carrier
+     * Get current orders for carrier.
+     * @return List of orders assigned to the current logged-in carrier
      */
     public List<Order> getCarrierCurrentOrders() {
         int carrierId = session.getCurrentUserId();
@@ -279,7 +283,8 @@ public class OrderService {
     }
     
     /**
-     * Get completed orders for carrier
+     * Get completed orders for carrier.
+     * @return List of completed orders for the current logged-in carrier
      */
     public List<Order> getCarrierCompletedOrders() {
         int carrierId = session.getCurrentUserId();
@@ -293,7 +298,9 @@ public class OrderService {
     }
     
     /**
-     * Assign order to carrier (with transaction to prevent multiple assignments)
+     * Assign order to carrier (with transaction to prevent multiple assignments).
+     * @param orderId The order ID to assign
+     * @return true if order was assigned successfully, false otherwise
      */
     public boolean assignOrderToCarrier(int orderId) {
         int carrierId = session.getCurrentUserId();
@@ -307,7 +314,9 @@ public class OrderService {
     }
     
     /**
-     * Mark order as completed
+     * Mark order as completed.
+     * @param orderId The order ID to mark as completed
+     * @return true if order was marked as completed successfully, false otherwise
      */
     public boolean markOrderAsCompleted(int orderId) {
         try {
@@ -320,7 +329,10 @@ public class OrderService {
     }
     
     /**
-     * Mark order as completed with specific delivery date
+     * Mark order as completed with specific delivery date.
+     * @param orderId The order ID to mark as completed
+     * @param deliveryDate The delivery date to set
+     * @return true if order was marked as completed successfully, false otherwise
      */
     public boolean markOrderAsCompletedWithDate(int orderId, LocalDateTime deliveryDate) {
         try {
@@ -333,8 +345,10 @@ public class OrderService {
     }
     
     /**
-     * Cancel order by carrier (return to Pending status so other carriers can pick it up)
-     * Only allows cancellation if order is assigned to the current carrier
+     * Cancel order by carrier (return to Pending status so other carriers can pick it up).
+     * Only allows cancellation if order is assigned to the current carrier.
+     * @param orderId The order ID to cancel
+     * @return true if order was cancelled successfully, false otherwise
      */
     public boolean cancelOrderByCarrier(int orderId) {
         int carrierId = session.getCurrentUserId();
@@ -348,7 +362,9 @@ public class OrderService {
     }
     
     /**
-     * Get order by ID with items
+     * Get order by ID with items.
+     * @param orderId The order ID to search for
+     * @return The Order object with items if found, null otherwise
      */
     public Order getOrderById(int orderId) {
         try {
@@ -365,7 +381,41 @@ public class OrderService {
     }
     
     /**
-     * Save invoice path for order
+     * Save invoice PDF to database as CLOB.
+     * @param orderId The order ID to save the PDF for
+     * @param pdfBytes The PDF file as byte array
+     * @return true if PDF was saved successfully, false otherwise
+     */
+    public boolean saveInvoicePDF(int orderId, byte[] pdfBytes) {
+        try {
+            return orderRepository.saveInvoicePDF(orderId, pdfBytes);
+        } catch (SQLException e) {
+            System.err.println("Error saving invoice PDF: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+    
+    /**
+     * Get invoice PDF from database.
+     * @param orderId The order ID to get the PDF for
+     * @return The PDF file as byte array, or null if not found
+     */
+    public byte[] getInvoicePDF(int orderId) {
+        try {
+            return orderRepository.getInvoicePDF(orderId);
+        } catch (SQLException e) {
+            System.err.println("Error retrieving invoice PDF: " + e.getMessage());
+            e.printStackTrace();
+            return null;
+        }
+    }
+    
+    /**
+     * Save invoice path for order (legacy support).
+     * @param orderId The order ID to save the path for
+     * @param invoicePath The invoice file path
+     * @return true if invoice path was saved successfully, false otherwise
      */
     public boolean saveInvoicePath(int orderId, String invoicePath) {
         try {
@@ -378,12 +428,12 @@ public class OrderService {
     }
     
     /**
-     * Get all orders (for owner)
+     * Get all orders (for owner).
+     * @return List of all orders with items loaded
      */
     public List<Order> getAllOrders() {
         try {
             List<Order> orders = orderRepository.findAll();
-            // Load order items for each order
             for (Order order : orders) {
                 order.setItems(orderItemRepository.findByOrderId(order.getOrderId()));
             }
@@ -396,7 +446,8 @@ public class OrderService {
     }
     
     /**
-     * Get all delivered orders (for owner reports)
+     * Get all delivered orders (for owner reports).
+     * @return List of all delivered orders
      */
     public List<Order> getAllDeliveredOrders() {
         try {
@@ -409,7 +460,9 @@ public class OrderService {
     }
     
     /**
-     * Cancel order by customer (within cancellation time frame)
+     * Cancel order by customer (within cancellation time frame).
+     * @param orderId The order ID to cancel
+     * @return true if order was cancelled successfully, false otherwise
      */
     public boolean cancelOrderByCustomer(int orderId) {
         int customerId = session.getCurrentUserId();
@@ -423,60 +476,137 @@ public class OrderService {
     }
     
     /**
-     * Generate PDF invoice for order
-     * Returns the file path where invoice is saved
+     * Generate PDF invoice for order using Apache PDFBox.
+     * Returns the PDF as byte array for database storage.
+     * @param order The Order object to generate invoice for
+     * @return The PDF file as byte array
      */
-    public String generateInvoicePDF(Order order) {
-        // Simplified PDF generation - in production, use a library like Apache PDFBox or iText
-        try {
-            String invoiceDir = "invoices";
-            java.io.File dir = new java.io.File(invoiceDir);
-            if (!dir.exists()) {
-                dir.mkdirs();
+    public byte[] generateInvoicePDF(Order order) {
+        try (PDDocument document = new PDDocument()) {
+            PDPage page = new PDPage();
+            document.addPage(page);
+            
+            try (PDPageContentStream contentStream = new PDPageContentStream(document, page)) {
+                float yPosition = 750;
+                float margin = 50;
+                float lineHeight = 20;
+                
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 24);
+                contentStream.newLineAtOffset(margin, yPosition);
+                contentStream.showText("Group17 GreenGrocer");
+                contentStream.endText();
+                
+                yPosition -= 30;
+                contentStream.beginText();
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 18);
+                contentStream.newLineAtOffset(margin, yPosition);
+                contentStream.showText("INVOICE");
+                contentStream.endText();
+                
+                yPosition -= 40;
+                
+                contentStream.setFont(PDType1Font.HELVETICA, 12);
+                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                
+                addTextLine(contentStream, margin, yPosition, "Order ID: " + order.getOrderId());
+                yPosition -= lineHeight;
+                addTextLine(contentStream, margin, yPosition, "Order Date: " + 
+                    (order.getOrderDate() != null ? order.getOrderDate().format(formatter) : "N/A"));
+                yPosition -= lineHeight;
+                addTextLine(contentStream, margin, yPosition, "Delivery Date: " + 
+                    (order.getDeliveryDate() != null ? order.getDeliveryDate().format(formatter) : "N/A"));
+                yPosition -= lineHeight;
+                addTextLine(contentStream, margin, yPosition, "Delivery Address: " + order.getDeliveryAddress());
+                yPosition -= 40;
+                
+                // Items Header
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                addTextLine(contentStream, margin, yPosition, "Items:");
+                yPosition -= lineHeight;
+                addTextLine(contentStream, margin, yPosition, "----------------------------------------");
+                yPosition -= lineHeight;
+                
+                // Items
+                contentStream.setFont(PDType1Font.HELVETICA, 10);
+                for (OrderItem item : order.getItems()) {
+                    String itemLine = String.format("%s - %.2f kg x ₺%.2f = ₺%.2f",
+                        item.getProduct().getProductName(),
+                        item.getQuantity(),
+                        item.getUnitPrice(),
+                        item.getSubtotal());
+                    
+                    if (yPosition < 100) {
+                        contentStream.endText();
+                        PDPage newPage = new PDPage();
+                        document.addPage(newPage);
+                        contentStream.close();
+                        contentStream.beginText();
+                        contentStream.setFont(PDType1Font.HELVETICA, 10);
+                        yPosition = 750;
+                    }
+                    
+                    addTextLine(contentStream, margin, yPosition, itemLine);
+                    yPosition -= lineHeight;
+                }
+                
+                yPosition -= 20;
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 12);
+                addTextLine(contentStream, margin, yPosition, "----------------------------------------");
+                yPosition -= lineHeight;
+                
+                // Totals
+                contentStream.setFont(PDType1Font.HELVETICA, 12);
+                addTextLine(contentStream, margin, yPosition, "Subtotal: ₺" + 
+                    order.getSubtotal().setScale(2, java.math.RoundingMode.HALF_UP));
+                yPosition -= lineHeight;
+                addTextLine(contentStream, margin, yPosition, "VAT (20%): ₺" + 
+                    order.getVatAmount().setScale(2, java.math.RoundingMode.HALF_UP));
+                yPosition -= lineHeight;
+                
+                if (order.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
+                    addTextLine(contentStream, margin, yPosition, "Coupon Discount: -₺" + 
+                        order.getDiscountAmount().setScale(2, java.math.RoundingMode.HALF_UP));
+                    yPosition -= lineHeight;
+                }
+                
+                if (order.getLoyaltyDiscount().compareTo(BigDecimal.ZERO) > 0) {
+                    addTextLine(contentStream, margin, yPosition, "Loyalty Discount: -₺" + 
+                        order.getLoyaltyDiscount().setScale(2, java.math.RoundingMode.HALF_UP));
+                    yPosition -= lineHeight;
+                }
+                
+                contentStream.setFont(PDType1Font.HELVETICA_BOLD, 14);
+                addTextLine(contentStream, margin, yPosition, "TOTAL: ₺" + 
+                    order.getTotalCost().setScale(2, java.math.RoundingMode.HALF_UP));
+                
+                contentStream.endText();
             }
             
-            String invoicePath = invoiceDir + "/order_" + order.getOrderId() + ".pdf";
-            java.io.File invoiceFile = new java.io.File(invoicePath);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            document.save(baos);
+            return baos.toByteArray();
             
-            // Create a simple text-based invoice (in production, generate actual PDF)
-            StringBuilder invoiceContent = new StringBuilder();
-            invoiceContent.append("Group17 GreenGrocer - Invoice\n");
-            invoiceContent.append("================================\n\n");
-            invoiceContent.append("Order ID: ").append(order.getOrderId()).append("\n");
-            invoiceContent.append("Order Date: ").append(order.getOrderDate()).append("\n");
-            invoiceContent.append("Delivery Date: ").append(order.getDeliveryDate()).append("\n");
-            invoiceContent.append("Delivery Address: ").append(order.getDeliveryAddress()).append("\n\n");
-            invoiceContent.append("Items:\n");
-            invoiceContent.append("--------------------------------\n");
-            
-            for (OrderItem item : order.getItems()) {
-                invoiceContent.append(item.getProduct().getProductName())
-                    .append(" - ").append(item.getQuantity()).append(" kg x ₺")
-                    .append(item.getUnitPrice()).append(" = ₺").append(item.getSubtotal()).append("\n");
-            }
-            
-            invoiceContent.append("\n--------------------------------\n");
-            invoiceContent.append("Subtotal: ₺").append(order.getSubtotal()).append("\n");
-            invoiceContent.append("VAT (20%): ₺").append(order.getVatAmount()).append("\n");
-            if (order.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
-                invoiceContent.append("Coupon Discount: -₺").append(order.getDiscountAmount()).append("\n");
-            }
-            if (order.getLoyaltyDiscount().compareTo(BigDecimal.ZERO) > 0) {
-                invoiceContent.append("Loyalty Discount: -₺").append(order.getLoyaltyDiscount()).append("\n");
-            }
-            invoiceContent.append("Total: ₺").append(order.getTotalCost()).append("\n");
-            
-            // Write to file (as text for now - in production, generate actual PDF)
-            try (java.io.FileWriter writer = new java.io.FileWriter(invoiceFile)) {
-                writer.write(invoiceContent.toString());
-            }
-            
-            return invoicePath;
-        } catch (Exception e) {
-            System.err.println("Error generating invoice: " + e.getMessage());
+        } catch (IOException e) {
+            System.err.println("Error generating PDF invoice: " + e.getMessage());
             e.printStackTrace();
-            return "invoices/order_" + order.getOrderId() + ".pdf";
+            return null;
         }
+    }
+    
+    /**
+     * Add a text line to PDF content stream.
+     * @param contentStream The PDF content stream
+     * @param x The x coordinate
+     * @param y The y coordinate
+     * @param text The text to add
+     * @throws IOException if writing to PDF fails
+     */
+    private void addTextLine(PDPageContentStream contentStream, float x, float y, String text) throws IOException {
+        contentStream.beginText();
+        contentStream.newLineAtOffset(x, y);
+        contentStream.showText(text);
+        contentStream.endText();
     }
 }
 

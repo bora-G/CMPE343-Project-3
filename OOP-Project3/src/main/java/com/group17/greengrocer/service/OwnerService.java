@@ -28,6 +28,9 @@ public class OwnerService {
     private final CouponRepository couponRepository;
     private final RatingRepository ratingRepository;
     
+    /**
+     * Constructor for OwnerService.
+     */
     public OwnerService() {
         this.userRepository = new UserRepository();
         this.orderRepository = new OrderRepository();
@@ -37,7 +40,8 @@ public class OwnerService {
     }
     
     /**
-     * Get all carriers
+     * Get all carriers.
+     * @return List of all active carriers
      */
     public List<User> getAllCarriers() {
         try {
@@ -50,7 +54,9 @@ public class OwnerService {
     }
     
     /**
-     * Hire a new carrier (create user with Carrier role)
+     * Hire a new carrier (create user with Carrier role).
+     * @param carrier The User object to create as carrier
+     * @return true if carrier was hired successfully, false otherwise
      */
     public boolean hireCarrier(User carrier) {
         carrier.setRole("Carrier");
@@ -65,7 +71,9 @@ public class OwnerService {
     }
     
     /**
-     * Fire a carrier (soft delete)
+     * Fire a carrier (soft delete).
+     * @param carrierId The carrier ID to fire
+     * @return true if carrier was fired successfully, false otherwise
      */
     public boolean fireCarrier(int carrierId) {
         try {
@@ -78,7 +86,8 @@ public class OwnerService {
     }
     
     /**
-     * Calculate total profit from delivered orders
+     * Calculate total profit from delivered orders.
+     * @return The total profit from all delivered orders
      */
     public BigDecimal calculateTotalProfit() {
         try {
@@ -100,7 +109,8 @@ public class OwnerService {
     }
     
     /**
-     * Get profit report data
+     * Get profit report data.
+     * @return Map containing total profit, total orders, and list of delivered orders
      */
     public Map<String, Object> getProfitReport() {
         Map<String, Object> report = new HashMap<>();
@@ -122,7 +132,8 @@ public class OwnerService {
     }
     
     /**
-     * Get delivered orders report
+     * Get delivered orders report.
+     * @return List of all delivered orders
      */
     public List<Order> getDeliveredOrdersReport() {
         try {
@@ -135,8 +146,9 @@ public class OwnerService {
     }
     
     /**
-     * Get carrier performance report
-     * Returns map of carrier ID to number of completed orders
+     * Get carrier performance report.
+     * Returns map of carrier ID to number of completed orders.
+     * @return Map of carrier ID to number of completed orders
      */
     public Map<Integer, Integer> getCarrierPerformanceReport() {
         Map<Integer, Integer> performance = new HashMap<>();
@@ -159,7 +171,9 @@ public class OwnerService {
     }
     
     /**
-     * Get user by ID
+     * Get user by ID.
+     * @param userId The user ID to search for
+     * @return The User object if found, null otherwise
      */
     public User getUserById(int userId) {
         try {
@@ -172,7 +186,8 @@ public class OwnerService {
     }
     
     /**
-     * Get all messages
+     * Get all messages.
+     * @return List of all messages from customers
      */
     public List<Message> getAllMessages() {
         try {
@@ -185,7 +200,10 @@ public class OwnerService {
     }
     
     /**
-     * Reply to a message
+     * Reply to a message.
+     * @param messageId The message ID to reply to
+     * @param reply The reply content (currently only marks as read)
+     * @return true if message was updated successfully, false otherwise
      */
     public boolean replyToMessage(int messageId, String reply) {
         try {
@@ -198,7 +216,8 @@ public class OwnerService {
     }
     
     /**
-     * Get all coupons
+     * Get all coupons.
+     * @return List of all coupons
      */
     public List<Coupon> getAllCoupons() {
         try {
@@ -211,11 +230,17 @@ public class OwnerService {
     }
     
     /**
-     * Create a coupon for a customer
+     * Create a coupon for a customer.
+     * @param customerId The customer ID to assign the coupon to (or -1 for all customers)
+     * @param couponCode The unique coupon code
+     * @param discountAmount The fixed discount amount
+     * @param discountPercent The percentage discount
+     * @param couponName The optional coupon name
+     * @return true if coupon was created successfully, false otherwise
      */
-    public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent) {
+    public boolean createCoupon(int customerId, String couponCode, BigDecimal discountAmount, BigDecimal discountPercent, String couponName) {
         try {
-            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent);
+            return couponRepository.create(customerId, couponCode, discountAmount, discountPercent, couponName);
         } catch (SQLException e) {
             System.err.println("Error creating coupon: " + e.getMessage());
             e.printStackTrace();
@@ -224,7 +249,8 @@ public class OwnerService {
     }
     
     /**
-     * Get all ratings
+     * Get all ratings.
+     * @return List of all carrier ratings
      */
     public List<CarrierRating> getAllRatings() {
         try {
@@ -237,7 +263,8 @@ public class OwnerService {
     }
     
     /**
-     * Get all customers
+     * Get all customers.
+     * @return List of all active customers
      */
     public List<User> getAllCustomers() {
         try {
@@ -250,7 +277,9 @@ public class OwnerService {
     }
     
     /**
-     * Check if coupon code is unique
+     * Check if coupon code is unique.
+     * @param couponCode The coupon code to check
+     * @return true if the coupon code is unique, false otherwise
      */
     public boolean isCouponCodeUnique(String couponCode) {
         try {

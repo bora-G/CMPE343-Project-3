@@ -61,12 +61,18 @@ public class CustomerController {
     @FXML
     private VBox productsContainer;
     
+    @FXML
+    private ComboBox<String> sortComboBox;
+    
     private ProductService productService;
     private AuthService authService;
     private com.group17.greengrocer.service.OrderService orderService;
     private Map<Integer, OrderItem> cart; // productId -> OrderItem
     private Timeline autoRefreshTimeline;
     
+    /**
+     * Initialize the controller.
+     */
     @FXML
     public void initialize() {
         productService = new ProductService();
@@ -74,30 +80,29 @@ public class CustomerController {
         orderService = new com.group17.greengrocer.service.OrderService();
         cart = new HashMap<>();
         
-        // Set username in top right corner
         if (authService.getCurrentUser() != null) {
             usernameLabel.setText(authService.getCurrentUser().getUsername());
             welcomeLabel.setText("Welcome, " + authService.getCurrentUser().getFullName());
         }
         
-        // Load products grouped by type
+        sortComboBox.getItems().addAll("Name (A-Z)", "Name (Z-A)", "Price (Low-High)", "Price (High-Low)");
+        sortComboBox.setValue("Name (A-Z)");
+        sortComboBox.setOnAction(e -> handleSortChange());
+        
         loadProductsByType();
         
-        // Setup auto-refresh every 5 seconds
         setupAutoRefresh();
     }
     
     /**
-     * Setup automatic refresh of product list every 5 seconds
+     * Setup automatic refresh of product list every 5 seconds.
      */
     private void setupAutoRefresh() {
         autoRefreshTimeline = new Timeline(
             new KeyFrame(Duration.seconds(5), e -> {
-                // Only refresh if not searching
                 if (searchField.getText().trim().isEmpty()) {
                     loadProductsByType();
                 } else {
-                    // If searching, refresh search results
                     handleSearch();
                 }
             })
@@ -107,7 +112,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle refresh button action
+     * Handle refresh button action.
      */
     @FXML
     private void handleRefresh() {
@@ -119,7 +124,7 @@ public class CustomerController {
     }
     
     /**
-     * Load products grouped by type using TitledPane
+     * Load products grouped by type using TitledPane.
      */
     private void loadProductsByType() {
         productsContainer.getChildren().clear();
@@ -127,7 +132,6 @@ public class CustomerController {
         List<String> types = productService.getProductTypes();
         
         for (String type : types) {
-            // Get fresh products from database
             List<Product> products = productService.getProductsByType(type);
             if (!products.isEmpty()) {
                 TitledPane titledPane = createProductTypePane(type, products);
@@ -137,13 +141,18 @@ public class CustomerController {
     }
     
     /**
-     * Create a TitledPane for a product type
+     * Create a TitledPane for a product type.
+     * @param type The product type
+     * @param products The list of products for this type
+     * @return The TitledPane containing products
      */
     private TitledPane createProductTypePane(String type, List<Product> products) {
+        List<Product> sortedProducts = sortProducts(new ArrayList<>(products));
+        
         VBox content = new VBox(10);
         content.setPadding(new javafx.geometry.Insets(10));
         
-        for (Product product : products) {
+        for (Product product : sortedProducts) {
             HBox productRow = createProductRow(product);
             content.getChildren().add(productRow);
         }
@@ -154,32 +163,100 @@ public class CustomerController {
     }
     
     /**
-     * Create a row for a product with add to cart functionality
+     * Sort products based on selected sort option.
+     * @param products The list of products to sort
+     * @return The sorted list of products
+     */
+    private List<Product> sortProducts(List<Product> products) {
+        String sortOption = sortComboBox.getValue();
+        if (sortOption == null) {
+            sortOption = "Name (A-Z)";
+        }
+        
+        switch (sortOption) {
+            case "Name (A-Z)":
+                products.sort((p1, p2) -> p1.getProductName().compareToIgnoreCase(p2.getProductName()));
+                break;
+            case "Name (Z-A)":
+                products.sort((p1, p2) -> p2.getProductName().compareToIgnoreCase(p1.getProductName()));
+                break;
+            case "Price (Low-High)":
+                products.sort((p1, p2) -> {
+                    BigDecimal price1 = productService.getDisplayPrice(p1);
+                    BigDecimal price2 = productService.getDisplayPrice(p2);
+                    return price1.compareTo(price2);
+                });
+                break;
+            case "Price (High-Low)":
+                products.sort((p1, p2) -> {
+                    BigDecimal price1 = productService.getDisplayPrice(p1);
+                    BigDecimal price2 = productService.getDisplayPrice(p2);
+                    return price2.compareTo(price1);
+                });
+                break;
+        }
+        return products;
+    }
+    
+    /**
+     * Handle sort change.
+     */
+    @FXML
+    private void handleSortChange() {
+        if (searchField.getText().trim().isEmpty()) {
+            loadProductsByType();
+        } else {
+            handleSearch();
+        }
+    }
+    
+    /**
+     * Create a row for a product with add to cart functionality.
+     * @param product The product to create a row for
+     * @return The HBox containing the product row
      */
     private HBox createProductRow(Product product) {
         HBox row = new HBox(10);
         row.setAlignment(javafx.geometry.Pos.CENTER_LEFT);
         
-        // Store product reference in row's userData for later refresh
         row.setUserData(product);
+        
+        javafx.scene.image.ImageView imageView = null;
+        if (product.getImageUrl() != null && !product.getImageUrl().isEmpty()) {
+            try {
+                javafx.scene.image.Image image = new javafx.scene.image.Image(product.getImageUrl(), true);
+                imageView = new javafx.scene.image.ImageView(image);
+                imageView.setFitWidth(100);
+                imageView.setFitHeight(100);
+                imageView.setPreserveRatio(true);
+                imageView.setSmooth(true);
+                imageView.setCache(true);
+                image.errorProperty().addListener((obs, wasError, isNowError) -> {
+                    if (isNowError) {
+                        System.err.println("Failed to load image from URL: " + product.getImageUrl());
+                    }
+                });
+            } catch (Exception e) {
+                System.err.println("Error loading image from URL: " + e.getMessage());
+                e.printStackTrace();
+            }
+        }
         
         Label nameLabel = new Label(product.getProductName());
         nameLabel.setPrefWidth(200);
         
-        // Get display price based on threshold rule
         BigDecimal displayPrice = productService.getDisplayPrice(product);
         String priceText = "₺" + displayPrice + "/kg";
-        // If price is doubled, add indicator
         if (displayPrice.compareTo(product.getPricePerKg()) > 0) {
             priceText += " (2x)";
         }
         Label priceLabel = new Label(priceText);
         priceLabel.setPrefWidth(120);
-        priceLabel.setUserData("price"); // Mark as price label
+        priceLabel.setUserData("price");
         
         Label stockLabel = new Label("Stock: " + product.getStock() + " kg");
         stockLabel.setPrefWidth(120);
-        stockLabel.setUserData("stock"); // Mark as stock label
+        stockLabel.setUserData("stock");
         
         TextField quantityField = new TextField();
         quantityField.setPromptText("kg");
@@ -188,12 +265,22 @@ public class CustomerController {
         Button addButton = new Button("Add to Cart");
         addButton.setOnAction(e -> handleAddToCart(product, quantityField, row));
         
-        row.getChildren().addAll(nameLabel, priceLabel, stockLabel, quantityField, addButton);
+        if (imageView != null) {
+            imageView.setStyle("-fx-effect: dropshadow(three-pass-box, rgba(0,0,0,0.3), 5, 0, 0, 2);");
+            row.getChildren().addAll(imageView, nameLabel, priceLabel, stockLabel, quantityField, addButton);
+        } else {
+            Label placeholderLabel = new Label("📦");
+            placeholderLabel.setStyle("-fx-font-size: 30px; -fx-padding: 10px;");
+            row.getChildren().addAll(placeholderLabel, nameLabel, priceLabel, stockLabel, quantityField, addButton);
+        }
         return row;
     }
     
     /**
-     * Handle add to cart action
+     * Handle add to cart action.
+     * @param product The product to add to cart
+     * @param quantityField The quantity input field
+     * @param productRow The product row HBox for refreshing
      */
     @FXML
     private void handleAddToCart(Product product, TextField quantityField, HBox productRow) {
@@ -206,22 +293,18 @@ public class CustomerController {
         
         BigDecimal quantity = new BigDecimal(quantityStr);
         
-        // Check stock availability
         if (quantity.compareTo(product.getStock()) > 0) {
             showAlert(Alert.AlertType.ERROR, "Insufficient Stock", 
                 "Available stock: " + product.getStock() + " kg");
             return;
         }
         
-        // Get display price based on threshold rule (stock <= threshold means doubled price)
         BigDecimal displayPrice = productService.getDisplayPrice(product);
         
-        // Add or merge with existing cart item
         if (cart.containsKey(product.getProductId())) {
             OrderItem existingItem = cart.get(product.getProductId());
             BigDecimal newQuantity = existingItem.getQuantity().add(quantity);
             existingItem.setQuantity(newQuantity);
-            // Recalculate price based on current stock
             BigDecimal currentDisplayPrice = productService.getDisplayPrice(product);
             existingItem.setUnitPrice(currentDisplayPrice);
             existingItem.setSubtotal(currentDisplayPrice.multiply(newQuantity));
@@ -238,15 +321,15 @@ public class CustomerController {
         quantityField.clear();
         showAlert(Alert.AlertType.INFORMATION, "Success", "Product added to cart!");
         
-        // Refresh the product row to update price and stock display
         refreshProductRow(product, productRow);
     }
     
     /**
-     * Refresh a single product row with updated price and stock
+     * Refresh a single product row with updated price and stock.
+     * @param product The product to refresh
+     * @param row The product row HBox to update
      */
     private void refreshProductRow(Product product, HBox row) {
-        // Get fresh product data from database
         Product freshProduct = productService.getProductById(product.getProductId());
         if (freshProduct == null) {
             return;
@@ -280,7 +363,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle search action
+     * Handle search action.
      */
     @FXML
     private void handleSearch() {
@@ -299,7 +382,6 @@ public class CustomerController {
             Label noResultsLabel = new Label("No products found.");
             productsContainer.getChildren().add(noResultsLabel);
         } else {
-            // Group search results by type
             Map<String, List<Product>> groupedProducts = new HashMap<>();
             for (Product product : products) {
                 groupedProducts.computeIfAbsent(product.getProductType(), k -> new ArrayList<>()).add(product);
@@ -313,7 +395,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle view cart action
+     * Handle view cart action.
      */
     @FXML
     private void handleViewCart() {
@@ -331,10 +413,9 @@ public class CustomerController {
             Stage cartStage = new Stage();
             cartStage.setTitle("Shopping Cart");
             cartStage.setScene(new Scene(root));
+            cartStage.setMaximized(true);
             
-            // Refresh product list when cart window is closed
             cartStage.setOnCloseRequest(e -> {
-                // Refresh product list to update prices and stock
                 if (searchField.getText().trim().isEmpty()) {
                     loadProductsByType();
                 } else {
@@ -350,7 +431,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle edit profile action
+     * Handle edit profile action.
      */
     @FXML
     private void handleEditProfile() {
@@ -359,7 +440,8 @@ public class CustomerController {
     }
     
     /**
-     * Create profile edit dialog
+     * Create profile edit dialog.
+     * @return The profile edit dialog
      */
     private Dialog<Void> createProfileEditDialog() {
         Dialog<Void> dialog = new Dialog<>();
@@ -376,7 +458,6 @@ public class CustomerController {
         TextField addressField = new TextField(currentUser != null && currentUser.getAddress() != null ? currentUser.getAddress() : "");
         addressField.setPromptText("Address (optional)");
         
-        // Add input length restrictions
         fullNameField.textProperty().addListener((observable, oldValue, newValue) -> {
             if (newValue != null && newValue.length() > 100) {
                 fullNameField.setText(oldValue);
@@ -393,7 +474,6 @@ public class CustomerController {
             if (newValue != null && newValue.length() > 10) {
                 phoneField.setText(oldValue);
             }
-            // Only allow digits
             if (newValue != null && !newValue.matches("^[0-9]*$")) {
                 phoneField.setText(oldValue);
             }
@@ -420,7 +500,6 @@ public class CustomerController {
             String phone = phoneField.getText().trim();
             String address = addressField.getText().trim();
             
-            // Validate required fields
             if (fullName.isEmpty()) {
                 showAlert(Alert.AlertType.ERROR, "Missing Field", 
                     "Full name is required.");
@@ -428,7 +507,6 @@ public class CustomerController {
                 return;
             }
             
-            // Update profile
             String result = authService.updateProfile(fullName, 
                 email.isEmpty() ? null : email, 
                 phone.isEmpty() ? null : phone, 
@@ -440,7 +518,6 @@ public class CustomerController {
             } else {
                 showAlert(Alert.AlertType.INFORMATION, "Success", 
                     "Profile updated successfully!");
-                // Update welcome label
                 if (authService.getCurrentUser() != null) {
                     welcomeLabel.setText("Welcome, " + authService.getCurrentUser().getFullName());
                 }
@@ -453,7 +530,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle logout action
+     * Handle logout action.
      */
     @FXML
     private void handleLogout() {
@@ -463,8 +540,10 @@ public class CustomerController {
             Parent root = loader.load();
             Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
+            stage.setFullScreen(false); // Exit fullscreen before changing scene
             stage.setScene(scene);
             stage.setTitle("Login");
+            stage.setMaximized(true);
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
@@ -472,7 +551,10 @@ public class CustomerController {
     }
     
     /**
-     * Show alert dialog
+     * Show alert dialog.
+     * @param type The alert type
+     * @param title The alert title
+     * @param message The alert message
      */
     private void showAlert(Alert.AlertType type, String title, String message) {
         Alert alert = new Alert(type);
@@ -483,28 +565,28 @@ public class CustomerController {
     }
     
     /**
-     * Get cart items (for cart controller)
+     * Get cart items (for cart controller).
+     * @return List of cart items
      */
     public List<OrderItem> getCartItems() {
         return new ArrayList<>(cart.values());
     }
     
     /**
-     * Clear cart
+     * Clear cart.
      */
     public void clearCart() {
         cart.clear();
     }
     
     /**
-     * Handle view order history action
+     * Handle view order history action.
      */
     @FXML
     private void handleViewOrderHistory() {
         try {
             List<com.group17.greengrocer.model.Order> orders = orderService.getCustomerOrders();
             
-            // Create order history dialog
             Dialog<Void> dialog = new Dialog<>();
             dialog.setTitle("My Orders");
             dialog.setHeaderText("Order History");
@@ -529,7 +611,6 @@ public class CustomerController {
                 return new javafx.beans.property.SimpleStringProperty(date != null ? date.toString() : "");
             });
             
-            // Actions column with Cancel and Rate buttons
             actionsColumn.setCellFactory(param -> new javafx.scene.control.TableCell<com.group17.greengrocer.model.Order, Void>() {
                 private final javafx.scene.control.Button cancelButton = new javafx.scene.control.Button("Cancel");
                 private final javafx.scene.control.Button rateButton = new javafx.scene.control.Button("Rate");
@@ -591,7 +672,8 @@ public class CustomerController {
     }
     
     /**
-     * Handle cancel order action
+     * Handle cancel order action.
+     * @param order The order to cancel
      */
     private void handleCancelOrder(com.group17.greengrocer.model.Order order) {
         Alert confirm = new Alert(Alert.AlertType.CONFIRMATION);
@@ -603,7 +685,7 @@ public class CustomerController {
             if (response == ButtonType.OK) {
                 if (orderService.cancelOrderByCustomer(order.getOrderId())) {
                     showAlert(Alert.AlertType.INFORMATION, "Success", "Order cancelled successfully.");
-                    handleViewOrderHistory(); // Refresh
+                    handleViewOrderHistory();
                 } else {
                     showAlert(Alert.AlertType.ERROR, "Error", "Failed to cancel order. It may be too late to cancel.");
                 }
@@ -612,7 +694,8 @@ public class CustomerController {
     }
     
     /**
-     * Handle rate carrier action
+     * Handle rate carrier action.
+     * @param order The order to rate the carrier for
      */
     private void handleRateCarrier(com.group17.greengrocer.model.Order order) {
         Dialog<javafx.util.Pair<Integer, String>> dialog = new Dialog<>();
@@ -659,7 +742,8 @@ public class CustomerController {
     }
     
     /**
-     * Handle download invoice action
+     * Handle download invoice action.
+     * @param order The order to download invoice for
      */
     private void handleDownloadInvoice(com.group17.greengrocer.model.Order order) {
         if (order.getInvoicePath() == null || order.getInvoicePath().isEmpty()) {
@@ -681,7 +765,7 @@ public class CustomerController {
     }
     
     /**
-     * Handle message owner action
+     * Handle message owner action.
      */
     @FXML
     private void handleMessageOwner() {

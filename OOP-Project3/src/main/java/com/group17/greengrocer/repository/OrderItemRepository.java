@@ -14,12 +14,18 @@ import java.util.List;
 public class OrderItemRepository {
     private final DatabaseAdapter dbAdapter;
     
+    /**
+     * Constructor for OrderItemRepository.
+     */
     public OrderItemRepository() {
         this.dbAdapter = DatabaseAdapter.getInstance();
     }
     
     /**
-     * Find order item by ID
+     * Find order item by ID.
+     * @param orderItemId The order item ID to search for
+     * @return The OrderItem object if found, null otherwise
+     * @throws SQLException if database access error occurs
      */
     public OrderItem findById(int orderItemId) throws SQLException {
         String sql = "SELECT * FROM OrderItem WHERE orderItemId = ?";
@@ -39,7 +45,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Get all items for an order
+     * Get all items for an order.
+     * @param orderId The order ID to get items for
+     * @return List of order items for the specified order
+     * @throws SQLException if database access error occurs
      */
     public List<OrderItem> findByOrderId(int orderId) throws SQLException {
         String sql = "SELECT * FROM OrderItem WHERE orderId = ?";
@@ -60,7 +69,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Create a new order item
+     * Create a new order item.
+     * @param item The OrderItem object to create
+     * @return true if order item was created successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean create(OrderItem item) throws SQLException {
         String sql = "INSERT INTO OrderItem (orderId, productId, quantity, unitPrice, subtotal) " +
@@ -90,7 +102,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Create multiple order items in a batch
+     * Create multiple order items in a batch.
+     * @param items The list of OrderItem objects to create
+     * @return true if all items were created successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean createBatch(List<OrderItem> items) throws SQLException {
         String sql = "INSERT INTO OrderItem (orderId, productId, quantity, unitPrice, subtotal) " +
@@ -114,7 +129,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Update order item
+     * Update order item.
+     * @param item The OrderItem object with updated information
+     * @return true if order item was updated successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean update(OrderItem item) throws SQLException {
         String sql = "UPDATE OrderItem SET orderId = ?, productId = ?, quantity = ?, unitPrice = ?, subtotal = ? " +
@@ -135,7 +153,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Delete order item
+     * Delete order item.
+     * @param orderItemId The order item ID to delete
+     * @return true if order item was deleted successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean delete(int orderItemId) throws SQLException {
         String sql = "DELETE FROM OrderItem WHERE orderItemId = ?";
@@ -149,7 +170,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Delete all items for an order
+     * Delete all items for an order.
+     * @param orderId The order ID to delete items for
+     * @return true if items were deleted successfully, false otherwise
+     * @throws SQLException if database access error occurs
      */
     public boolean deleteByOrderId(int orderId) throws SQLException {
         String sql = "DELETE FROM OrderItem WHERE orderId = ?";
@@ -163,7 +187,10 @@ public class OrderItemRepository {
     }
     
     /**
-     * Map ResultSet to OrderItem object
+     * Map ResultSet to OrderItem object.
+     * @param rs The ResultSet containing order item data
+     * @return The mapped OrderItem object
+     * @throws SQLException if database access error occurs
      */
     private OrderItem mapResultSetToOrderItem(ResultSet rs) throws SQLException {
         OrderItem item = new OrderItem();
