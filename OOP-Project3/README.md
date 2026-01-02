@@ -1,149 +1,153 @@
 # Local Greengrocer Project
 
-A JavaFX + JDBC + MySQL application for managing a local greengrocer business.
+A comprehensive JavaFX + JDBC + MySQL application for managing a local greengrocer business with customer, carrier, and owner management features.
 
 **CMPE343 Project 3 - Group 17**
 
 ---
 
-## 📋 İçindekiler
+## 📋 Table of Contents
 
-- [Gereksinimler](#-gereksinimler)
-- [Kurulum](#-kurulum)
-- [Veritabanı Kurulumu](#-veritabanı-kurulumu)
-- [Projeyi Çalıştırma](#-projeyi-çalıştırma)
-- [Giriş Bilgileri](#-giriş-bilgileri)
-- [Özellikler](#-özellikler)
-- [Proje Yapısı](#-proje-yapısı)
-- [Sorun Giderme](#-sorun-giderme)
+- [Requirements](#-requirements)
+- [Installation](#-installation)
+- [Database Setup](#-database-setup)
+- [Running the Project](#-running-the-project)
+- [Login Credentials](#-login-credentials)
+- [Features](#-features)
+- [Project Structure](#-project-structure)
+- [Architecture](#-architecture)
+- [Business Rules](#-business-rules)
+- [Troubleshooting](#-troubleshooting)
+- [Technologies Used](#-technologies-used)
+- [Documentation](#-documentation)
 
 ---
 
-## 🔧 Gereksinimler
+## 🔧 Requirements
 
-Projeyi çalıştırmak için aşağıdaki yazılımların kurulu olması gerekmektedir:
+The following software must be installed to run the project:
 
 ### 1. Java Development Kit (JDK)
-- **Versiyon**: JDK 11 veya üzeri (JDK 17 önerilir)
-- **İndirme**: [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) veya [OpenJDK](https://adoptium.net/)
-- **Kontrol**: Komut satırında `java -version` komutunu çalıştırarak kontrol edebilirsiniz
+- **Version**: JDK 11 or higher (JDK 17 recommended)
+- **Download**: [Oracle JDK](https://www.oracle.com/java/technologies/downloads/) or [OpenJDK](https://adoptium.net/)
+- **Check**: Run `java -version` in the command line
 
 ### 2. Apache Maven
-- **Versiyon**: 3.6.0 veya üzeri
-- **İndirme**: [Maven Download](https://maven.apache.org/download.cgi)
-- **Kurulum**: 
-  - Windows: ZIP dosyasını indirip çıkarın, `bin` klasörünü sistem PATH'ine ekleyin
-  - Alternatif: [Maven Installation Guide](https://maven.apache.org/install.html)
-- **Kontrol**: Komut satırında `mvn -version` komutunu çalıştırarak kontrol edebilirsiniz
+- **Version**: 3.6.0 or higher
+- **Download**: [Maven Download](https://maven.apache.org/download.cgi)
+- **Installation**: 
+  - Windows: Extract ZIP file and add `bin` folder to system PATH
+  - Alternative: [Maven Installation Guide](https://maven.apache.org/install.html)
+- **Check**: Run `mvn -version` in the command line
 
 ### 3. MySQL Server
-- **Versiyon**: MySQL 5.7 veya üzeri (MySQL 8.0 önerilir)
-- **İndirme**: [MySQL Community Server](https://dev.mysql.com/downloads/mysql/)
-- **Kurulum**: 
-  - Windows: MySQL Installer'ı kullanarak kurun
-  - Kurulum sırasında root şifresini belirleyin (varsayılan: `1234`)
-- **Kontrol**: MySQL servisinin çalıştığından emin olun
+- **Version**: MySQL 5.7 or higher (MySQL 8.0 recommended)
+- **Download**: [MySQL Community Server](https://dev.mysql.com/downloads/mysql/)
+- **Installation**: 
+  - Windows: Use MySQL Installer
+  - Set root password during installation (default: `1234`)
+- **Check**: Ensure MySQL service is running
 
-### 4. MySQL Workbench (Opsiyonel - Önerilir)
-- **İndirme**: [MySQL Workbench](https://dev.mysql.com/downloads/workbench/)
-- Veritabanı yönetimi ve SQL dosyası import işlemleri için kullanılabilir
+### 4. MySQL Workbench (Optional - Recommended)
+- **Download**: [MySQL Workbench](https://dev.mysql.com/downloads/workbench/)
+- Useful for database management and SQL file imports
 
 ---
 
-## 🚀 Kurulum
+## 🚀 Installation
 
-### Adım 1: Projeyi İndirin
+### Step 1: Download the Project
 
-Projeyi bilgisayarınıza indirin veya klonlayın:
+Download or clone the project to your computer:
 ```bash
 git clone <repository-url>
 cd OOP-Project3
 ```
 
-### Adım 2: Maven Bağımlılıklarını İndirin
+### Step 2: Download Maven Dependencies
 
-Proje klasöründe aşağıdaki komutu çalıştırın:
+Run the following command in the project folder:
 ```bash
 mvn clean install
 ```
 
-Bu komut tüm bağımlılıkları (JavaFX, MySQL Connector, vb.) otomatik olarak indirecektir.
+This command will automatically download all dependencies (JavaFX, MySQL Connector, PDFBox, etc.).
 
-**Not**: İnternet bağlantısı gereklidir. İlk çalıştırmada bağımlılıklar indirileceği için biraz zaman alabilir.
+**Note**: Internet connection is required. The first run may take some time as dependencies are downloaded.
 
-### Adım 3: Veritabanı Bağlantı Ayarlarını Kontrol Edin
+### Step 3: Check Database Connection Settings
 
-`src/main/java/com/group17/greengrocer/util/DatabaseAdapter.java` dosyasını açın ve MySQL şifrenizi kontrol edin:
+Open `src/main/java/com/group17/greengrocer/util/DatabaseAdapter.java` and verify your MySQL password:
 
 ```java
 private static final String DB_URL = "jdbc:mysql://localhost:3306/greengrocer_db";
 private static final String DB_USER = "root";
-private static final String DB_PASSWORD = "1234"; // MySQL şifrenizi buraya yazın
+private static final String DB_PASSWORD = "1234"; // Update with your MySQL password
 ```
 
-**Önemli**: Eğer MySQL root şifreniz `1234` değilse, bu dosyada şifreyi güncelleyin.
+**Important**: If your MySQL root password is not `1234`, update it in this file.
 
 ---
 
-## 💾 Veritabanı Kurulumu
+## 💾 Database Setup
 
-### Yöntem 1: Otomatik Kurulum (Windows - Önerilir)
+### Method 1: Automatic Setup (Windows - Recommended)
 
-1. `setup-database.bat` dosyasına çift tıklayın
-2. Script otomatik olarak:
-   - Veritabanını oluşturacak
-   - Tabloları oluşturacak
-   - Örnek verileri yükleyecek
+1. Double-click `setup-database.bat`
+2. The script will automatically:
+   - Create the database
+   - Create tables
+   - Load sample data
 
-**Not**: MySQL şifreniz `1234` değilse, `setup-database.bat` dosyasını düzenleyip şifrenizi güncelleyin.
+**Note**: If your MySQL password is not `1234`, edit `setup-database.bat` and update the password.
 
-### Yöntem 2: MySQL Workbench ile Kurulum (En Kolay)
+### Method 2: MySQL Workbench Setup (Easiest)
 
-Detaylı adımlar için `IMPORT_WITH_WORKBENCH.md` dosyasına bakın.
+See `IMPORT_WITH_WORKBENCH.md` for detailed steps.
 
-**Kısa Özet:**
-1. MySQL Workbench'i açın
-2. MySQL sunucunuza bağlanın (root / şifreniz)
-3. **Server** → **Data Import** menüsüne gidin
-4. **"Import from Self-Contained File"** seçeneğini işaretleyin
-5. `database/schema.sql` dosyasını seçin
-6. **Default Target Schema** olarak `greengrocer_db` seçin (yoksa oluşturun)
-7. **Start Import** butonuna tıklayın
+**Quick Summary:**
+1. Open MySQL Workbench
+2. Connect to your MySQL server (root / your password)
+3. Go to **Server** → **Data Import**
+4. Select **"Import from Self-Contained File"**
+5. Select `database/schema.sql` file
+6. Select `greengrocer_db` as **Default Target Schema** (create if it doesn't exist)
+7. Click **Start Import**
 
-### Yöntem 3: Komut Satırı ile Kurulum
+### Method 3: Command Line Setup
 
-1. MySQL komut satırını açın:
+1. Open MySQL command line:
    ```bash
    mysql -u root -p
    ```
 
-2. Şifrenizi girin
+2. Enter your password
 
-3. Veritabanını oluşturun:
+3. Create the database:
    ```sql
    CREATE DATABASE IF NOT EXISTS greengrocer_db;
    USE greengrocer_db;
    ```
 
-4. SQL dosyasını import edin:
+4. Import the SQL file:
    ```sql
    source database/schema.sql;
    ```
    
-   Veya Windows'ta:
+   Or on Windows:
    ```bash
    mysql -u root -p greengrocer_db < database\schema.sql
    ```
 
-### Veritabanı Kurulumunu Doğrulama
+### Verify Database Setup
 
-MySQL Workbench veya komut satırında:
+In MySQL Workbench or command line:
 ```sql
 USE greengrocer_db;
 SHOW TABLES;
 ```
 
-Şu tabloları görmelisiniz:
+You should see the following tables:
 - `UserInfo`
 - `ProductInfo`
 - `OrderInfo`
@@ -152,273 +156,370 @@ SHOW TABLES;
 - `CarrierRating`
 - `Message`
 
-Örnek verileri kontrol etmek için:
+To check sample data:
 ```sql
 SELECT * FROM UserInfo LIMIT 5;
 SELECT * FROM ProductInfo LIMIT 5;
 ```
 
+**Note**: The application automatically runs database migrations on startup to add missing columns and tables if needed.
+
 ---
 
-## ▶️ Projeyi Çalıştırma
+## ▶️ Running the Project
 
-### Yöntem 1: Maven ile Çalıştırma (Önerilir)
+### Method 1: Run with Maven (Recommended)
 
-Komut satırında proje klasöründe:
+In the command line, from the project folder:
 ```bash
 mvn clean javafx:run
 ```
 
-### Yöntem 2: Windows Batch Script ile
+### Method 2: Windows Batch Script
 
-`run.bat` dosyasına çift tıklayın veya komut satırında:
+Double-click `run.bat` or run in command line:
 ```bash
 run.bat
 ```
 
-### Yöntem 3: IDE ile Çalıştırma
+### Method 3: Run from IDE
 
 #### IntelliJ IDEA
-1. Projeyi **File** → **Open** ile açın
-2. Maven projesi olarak import edin
+1. Open project via **File** → **Open**
+2. Import as Maven project
 3. **Run** → **Edit Configurations**
-4. **+** butonuna tıklayıp **Maven** seçin
-5. **Command line**: `clean javafx:run` yazın
-6. **Apply** ve **Run**
+4. Click **+** and select **Maven**
+5. **Command line**: `clean javafx:run`
+6. **Apply** and **Run**
 
-Alternatif olarak, `Main.java` dosyasını açıp sağ tıklayarak **Run 'Main.main()'** seçebilirsiniz (JavaFX modül ayarları gerekebilir).
+Alternatively, open `Main.java` and right-click **Run 'Main.main()'** (JavaFX module settings may be required).
 
 #### Eclipse
-1. Projeyi **File** → **Import** → **Existing Maven Projects** ile açın
+1. Open project via **File** → **Import** → **Existing Maven Projects**
 2. **Run** → **Run Configurations**
-3. **Maven Build** oluşturun
+3. Create **Maven Build**
 4. **Goals**: `clean javafx:run`
 5. **Run**
 
 #### VS Code
-1. Java Extension Pack'i yükleyin
-2. Projeyi açın
-3. Terminal'de `mvn clean javafx:run` komutunu çalıştırın
+1. Install Java Extension Pack
+2. Open the project
+3. Run `mvn clean javafx:run` in the terminal
 
 ---
 
-## 🔐 Giriş Bilgileri
+## 🔐 Login Credentials
 
-Uygulama örnek kullanıcılarla birlikte gelir:
+The application comes with sample users:
 
-### Müşteri (Customer)
-- **Kullanıcı Adı**: `customer1`
-- **Şifre**: `customer123`
+### Customer
+- **Username**: `customer1`
+- **Password**: `customer123`
 
-### Kurye (Carrier)
-- **Kullanıcı Adı**: `carrier1`
-- **Şifre**: `carrier123`
+### Carrier
+- **Username**: `carrier1`
+- **Password**: `carrier123`
 
-### Sahip (Owner)
-- **Kullanıcı Adı**: `owner1`
-- **Şifre**: `owner123`
+### Owner
+- **Username**: `owner1`
+- **Password**: `owner123`
 
-**Not**: Veritabanında daha fazla örnek kullanıcı bulunmaktadır (`customer2`, `customer3`, `carrier2`, vb.)
-
----
-
-## ✨ Özellikler
-
-### Müşteri Özellikleri
-- ✅ Ürünleri türe göre gruplandırılmış şekilde görüntüleme (TitledPane ile)
-- ✅ Ürünleri alfabetik sıralama
-- ✅ Sadece stokta olan ürünleri gösterme
-- ✅ Ürün arama (büyük/küçük harf duyarsız)
-- ✅ Sepete kg cinsinden ürün ekleme
-- ✅ Girdi doğrulama (negatif, sıfır, sayısal olmayan değerleri engelleme)
-- ✅ Sepette aynı ürünleri birleştirme
-- ✅ Sepeti ayrı pencerede görüntüleme
-- ✅ Sipariş tamamlama:
-  - Teslimat zamanı doğrulama (48 saat içinde)
-  - Doğru toplam maliyet hesaplama
-  - Eşik kuralı (eşik altında fiyat ikiye katlanır)
-- ✅ Fatura oluşturma ve kaydetme
-
-### Kurye Özellikleri
-- ✅ Mevcut siparişleri görüntüleme
-- ✅ Atanmış siparişleri görüntüleme
-- ✅ Tamamlanmış siparişleri görüntüleme
-- ✅ Sipariş seçme (aynı siparişin birden fazla kuryeye atanmasını önleme)
-- ✅ Siparişleri tamamlandı olarak işaretleme
-
-### Sahip Özellikleri
-- ✅ Ürün ekleme/güncelleme/silme
-- ✅ Ürün stoğunu güncelleme
-- ✅ Kurye yönetimi (işe alma/çıkarma)
-- ✅ Raporlar:
-  - Kar raporu
-  - Teslim edilen siparişler raporu
-  - Kurye performans raporu (grafiklerle)
+**Note**: More sample users are available in the database (`customer2`, `customer3`, `carrier2`, etc.)
 
 ---
 
-## 📁 Proje Yapısı
+## ✨ Features
+
+### Customer Features
+- ✅ View products grouped by type (using TitledPane)
+- ✅ Sort products by name (A-Z / Z-A) or price (ascending / descending)
+- ✅ Filter to show only in-stock products
+- ✅ Search products (case-insensitive)
+- ✅ Add products to cart by weight (kg)
+- ✅ Input validation (prevents negative, zero, or non-numeric values)
+- ✅ Merge same products in cart
+- ✅ View cart in separate window
+- ✅ View available coupons
+- ✅ Apply coupons at checkout
+- ✅ Complete orders with:
+  - Delivery time validation (within 48 hours)
+  - Accurate total cost calculation
+  - Threshold rule (price doubles if stock <= threshold)
+  - Minimum cart value (200 TL)
+- ✅ Generate and download PDF invoices
+- ✅ View product images
+- ✅ Rate carriers after order completion
+- ✅ Send messages to owner
+
+### Carrier Features
+- ✅ View available orders
+- ✅ View assigned orders
+- ✅ View completed orders
+- ✅ Select orders (prevents multiple carriers from selecting the same order)
+- ✅ Prevent accepting orders with past delivery dates
+- ✅ Mark orders as completed
+- ✅ Cancel assigned orders (returns them to available orders)
+
+### Owner Features
+- ✅ Product management:
+  - Add/update/delete products
+  - Update product stock
+  - Apply discounts to products
+  - Set product images (via URL)
+  - View low stock alerts (when stock falls below threshold)
+- ✅ Carrier management:
+  - Hire carriers
+  - Fire carriers
+  - View carrier performance
+- ✅ Reports:
+  - Profit report
+  - Delivered orders report
+  - Carrier performance report (with charts)
+- ✅ Coupon management:
+  - Create coupons for all customers or specific customers
+  - Set custom coupon names
+  - View all coupons
+- ✅ Message management:
+  - View customer messages
+  - Reply to customer messages
+- ✅ Loyalty program management:
+  - Adjust loyalty threshold (minimum completed orders)
+  - Adjust loyalty discount percentage
+- ✅ View carrier ratings
+
+### General Features
+- ✅ Full-screen application mode
+- ✅ Modern and responsive UI
+- ✅ Input validation for all forms
+- ✅ PDF invoice generation and storage (as CLOB in database)
+- ✅ Product images stored as BLOBs in database
+- ✅ Comprehensive JavaDoc documentation
+- ✅ Automatic database migrations
+
+---
+
+## 📁 Project Structure
 
 ```
 OOP-Project3/
 ├── database/
-│   └── schema.sql              # Veritabanı şeması ve örnek veriler
+│   ├── schema.sql              # Database schema and sample data
+│   └── add_image_columns.sql   # Additional image columns
 ├── src/
 │   └── main/
 │       ├── java/
 │       │   └── com/group17/greengrocer/
-│       │       ├── app/        # Ana uygulama giriş noktası
-│       │       ├── controller/ # JavaFX controller'ları
-│       │       ├── model/      # POJO/entity sınıfları
-│       │       ├── repository/ # Veritabanı erişim katmanı
-│       │       ├── service/    # İş mantığı katmanı
-│       │       └── util/       # Yardımcı sınıflar
+│       │       ├── app/        # Main application entry point
+│       │       ├── controller/ # JavaFX controllers
+│       │       ├── model/      # POJO/entity classes
+│       │       ├── repository/ # Database access layer
+│       │       ├── service/    # Business logic layer
+│       │       └── util/       # Utility classes
 │       └── resources/
-│           ├── css/           # Stil dosyaları
-│           ├── fxml/          # FXML görünüm dosyaları
-│           └── images/        # Görsel kaynaklar
-├── lib/                        # Harici JAR dosyaları
+│           ├── css/           # Style files
+│           ├── fxml/          # FXML view files
+│           └── images/       # Image resources
+├── target/
+│   └── reports/
+│       └── apidocs/          # Generated JavaDoc documentation
+├── lib/                       # External JAR files
 │   ├── mysql-connector-j-8.2.0.jar
 │   └── pdfbox-2.0.29.jar
-├── pom.xml                     # Maven yapılandırma dosyası
-├── run.bat                     # Windows çalıştırma scripti
-├── setup-database.bat          # Veritabanı kurulum scripti
-├── DATABASE_SETUP.md           # Veritabanı kurulum dokümantasyonu
-├── IMPORT_WITH_WORKBENCH.md    # MySQL Workbench ile import rehberi
-└── README.md                   # Bu dosya
+├── invoices/                  # Generated PDF invoices
+├── pom.xml                    # Maven configuration file
+├── run.bat                     # Windows run script
+├── setup-database.bat          # Database setup script
+├── DATABASE_SETUP.md           # Database setup documentation
+├── IMPORT_WITH_WORKBENCH.md    # MySQL Workbench import guide
+└── README.md                   # This file
 ```
 
 ---
 
-## 🏗️ Mimari
+## 🏗️ Architecture
 
-Proje **MVC (Model-View-Controller)** mimarisini takip eder:
+The project follows **MVC (Model-View-Controller)** architecture:
 
-- **Model**: Entity sınıfları (User, Product, Order, OrderItem)
-- **View**: FXML dosyaları ile tanımlanan UI
-- **Controller**: Kullanıcı etkileşimlerini yöneten JavaFX controller'ları
+- **Model**: Entity classes (User, Product, Order, OrderItem, Coupon, CarrierRating, Message)
+- **View**: UI defined by FXML files
+- **Controller**: JavaFX controllers that manage user interactions
 
-### Katman Ayrımı
+### Layer Separation
 
-- **Repository Katmanı**: Tüm veritabanı erişimlerini yönetir (JDBC/SQL)
-- **Service Katmanı**: İş mantığını içerir ve iş kurallarını uygular
-- **Controller Katmanı**: UI olaylarını yönetir ve servislere delege eder
-- **Controller'larda SQL Yok**: Tüm veritabanı işlemleri repository'lerde
-- **Repository'lerde İş Mantığı Yok**: İş kuralları servislerde uygulanır
+- **Repository Layer**: Manages all database access (JDBC/SQL)
+- **Service Layer**: Contains business logic and enforces business rules
+- **Controller Layer**: Manages UI events and delegates to services
+- **No SQL in Controllers**: All database operations are in repositories
+- **No Business Logic in Repositories**: Business rules are implemented in services
 
----
+### Design Patterns
 
-## 📜 İş Kuralları
-
-1. **Eşik Fiyatlandırması**: Sipariş edilen miktar ürün eşiğinin altındaysa, kg başına fiyat ikiye katlanır.
-2. **Teslimat Zamanı**: Teslimat, sipariş verilmesinden itibaren 48 saat içinde planlanmalıdır.
-3. **Stok Doğrulama**: Stok = 0 olan ürünler müşterilere gösterilmez.
-4. **Sipariş Atama**: Bir siparişe sadece bir kurye atanabilir (transaction tabanlı).
+- **Singleton Pattern**: Used for DatabaseAdapter and Session management
+- **Repository Pattern**: Data access abstraction
+- **Service Pattern**: Business logic encapsulation
+- **MVC Pattern**: Separation of concerns
 
 ---
 
-## 🔧 Sorun Giderme
+## 📜 Business Rules
 
-### Veritabanı Bağlantı Sorunları
-
-**Hata**: `Access denied for user 'root'@'localhost'`
-- MySQL şifrenizi kontrol edin
-- `DatabaseAdapter.java` dosyasındaki şifrenin doğru olduğundan emin olun
-- MySQL servisinin çalıştığını kontrol edin
-
-**Hata**: `Unknown database 'greengrocer_db'`
-- Veritabanını oluşturun: `CREATE DATABASE greengrocer_db;`
-- `setup-database.bat` scriptini çalıştırın
-
-**Hata**: `Table doesn't exist`
-- `database/schema.sql` dosyasını import edin
-- MySQL Workbench veya komut satırı ile import işlemini tekrarlayın
-
-### JavaFX Sorunları
-
-**Hata**: `Error: JavaFX runtime components are missing`
-- Maven bağımlılıklarının indirildiğinden emin olun: `mvn clean install`
-- `mvn javafx:run` komutunu kullanın (IDE yerine)
-
-**Hata**: `Module javafx.controls not found`
-- `pom.xml` dosyasının doğru olduğundan emin olun
-- Maven projesini yeniden yükleyin (IDE'de)
-
-### Derleme Sorunları
-
-**Hata**: `Package does not exist` veya `Cannot find symbol`
-- Maven bağımlılıklarını indirin: `mvn clean install`
-- IDE'de Maven projesini yeniden import edin
-- `target` klasörünü silip tekrar derleyin: `mvn clean compile`
-
-**Hata**: `FXML file not found`
-- `src/main/resources/fxml/` klasöründeki FXML dosyalarının varlığını kontrol edin
-- Dosya yollarının doğru olduğundan emin olun
-
-### Maven Sorunları
-
-**Hata**: `'mvn' is not recognized as an internal or external command`
-- Maven'ın kurulu olduğunu kontrol edin: `mvn -version`
-- Maven'ı sistem PATH'ine ekleyin
-- IDE'de Maven plugin'inin yüklü olduğundan emin olun
-
-**Hata**: `Could not resolve dependencies`
-- İnternet bağlantınızı kontrol edin
-- Maven repository erişimini kontrol edin
-- Proxy ayarlarını kontrol edin (gerekirse)
-
-### Diğer Sorunlar
-
-**Uygulama açılmıyor**
-- Java versiyonunu kontrol edin: `java -version` (JDK 11+ olmalı)
-- MySQL servisinin çalıştığını kontrol edin
-- Veritabanı bağlantı ayarlarını kontrol edin
-
-**Fatura oluşturulamıyor**
-- `invoices` klasörünün yazılabilir olduğundan emin olun
-- Disk alanını kontrol edin
+1. **Threshold Pricing**: If ordered quantity causes product stock to fall below threshold, price per kg doubles.
+2. **Delivery Time**: Delivery must be scheduled within 48 hours from order placement.
+3. **Stock Validation**: Products with stock = 0 are not shown to customers.
+4. **Order Assignment**: Only one carrier can be assigned to an order (transaction-based).
+5. **Minimum Cart Value**: Minimum cart total is 200 TL.
+6. **Past Delivery Dates**: Carriers cannot accept orders with delivery dates in the past.
+7. **Loyalty Program**: Customers who complete a certain number of orders (configurable) receive a discount percentage (configurable) on future orders.
+8. **Coupon System**: Owners can create coupons for all customers or specific customers with custom names.
+9. **Low Stock Alert**: Owner is notified when product stock falls below threshold.
 
 ---
 
-## 📚 Kullanılan Teknolojiler
+## 🔧 Troubleshooting
+
+### Database Connection Issues
+
+**Error**: `Access denied for user 'root'@'localhost'`
+- Check your MySQL password
+- Ensure the password in `DatabaseAdapter.java` is correct
+- Verify MySQL service is running
+
+**Error**: `Unknown database 'greengrocer_db'`
+- Create the database: `CREATE DATABASE greengrocer_db;`
+- Run `setup-database.bat` script
+
+**Error**: `Table doesn't exist`
+- Import `database/schema.sql` file
+- Re-run import using MySQL Workbench or command line
+- The application automatically runs migrations on startup to add missing tables/columns
+
+### JavaFX Issues
+
+**Error**: `Error: JavaFX runtime components are missing`
+- Ensure Maven dependencies are downloaded: `mvn clean install`
+- Use `mvn javafx:run` command (instead of IDE)
+
+**Error**: `Module javafx.controls not found`
+- Ensure `pom.xml` is correct
+- Reload Maven project in IDE
+
+### Compilation Issues
+
+**Error**: `Package does not exist` or `Cannot find symbol`
+- Download Maven dependencies: `mvn clean install`
+- Re-import Maven project in IDE
+- Delete `target` folder and recompile: `mvn clean compile`
+
+**Error**: `FXML file not found`
+- Check that FXML files exist in `src/main/resources/fxml/` folder
+- Verify file paths are correct
+
+### Maven Issues
+
+**Error**: `'mvn' is not recognized as an internal or external command`
+- Check Maven is installed: `mvn -version`
+- Add Maven to system PATH
+- Ensure Maven plugin is installed in IDE
+
+**Error**: `Could not resolve dependencies`
+- Check your internet connection
+- Verify Maven repository access
+- Check proxy settings (if needed)
+
+### JavaDoc Generation Issues
+
+**Error**: `MalformedInputException: Input length = 1`
+- Run `mvn clean` to clear old JavaDoc files
+- Then run `mvn javadoc:javadoc`
+- UTF-8 encoding is configured in `pom.xml`
+
+### Other Issues
+
+**Application won't start**
+- Check Java version: `java -version` (should be JDK 11+)
+- Verify MySQL service is running
+- Check database connection settings
+
+**PDF invoices not generating**
+- Ensure `invoices` folder is writable
+- Check disk space
+- Verify PDFBox dependency is downloaded
+
+**Images not displaying**
+- Check image URLs are valid and accessible
+- Verify image URLs are direct image links (not Wikipedia page URLs)
+- Check database BLOB storage
+
+---
+
+## 📚 Technologies Used
 
 - **Java**: JDK 11+
 - **JavaFX**: 17.0.2 (GUI framework)
-- **MySQL**: 5.7+ (Veritabanı)
+- **MySQL**: 5.7+ (Database)
 - **JDBC**: MySQL Connector/J 8.0.33
-- **Maven**: Bağımlılık yönetimi ve build aracı
-- **Apache PDFBox**: 2.0.29 (Fatura oluşturma için)
+- **Maven**: Dependency management and build tool
+- **Apache PDFBox**: 2.0.29 (PDF invoice generation)
+- **SHA-256**: Password hashing
 
 ---
 
-## 📝 Notlar
+## 📖 Documentation
 
-- Fatura oluşturma basitleştirilmiştir (yol veritabanında saklanır). Üretim sisteminde gerçek PDF dosyaları oluşturulur.
-- Uygulama, DatabaseAdapter ve Session yönetimi için singleton pattern kullanır.
-- Tüm veritabanı işlemleri SQL injection'ı önlemek için PreparedStatement kullanır.
-- Girdi doğrulama hem UI hem de servis katmanında yapılır.
+### JavaDoc
+
+Comprehensive JavaDoc documentation is available for all classes and methods.
+
+**Generate JavaDoc:**
+```bash
+mvn javadoc:javadoc
+```
+
+**View JavaDoc:**
+- Location: `target/reports/apidocs/index.html`
+- Open in browser to view complete API documentation
+
+### Additional Documentation
+
+- `DATABASE_SETUP.md`: Detailed database setup instructions
+- `IMPORT_WITH_WORKBENCH.md`: MySQL Workbench import guide
 
 ---
 
-## 👥 Katkıda Bulunanlar
+## 📝 Notes
+
+- Invoice PDFs are generated using Apache PDFBox and stored as CLOBs in the database.
+- Product images are stored as BLOBs in the database (via URL links).
+- The application uses singleton pattern for DatabaseAdapter and Session management.
+- All database operations use PreparedStatement to prevent SQL injection.
+- Input validation is performed at both UI and service layers.
+- The application automatically runs database migrations on startup.
+- All tabs in Owner and Carrier dashboards are non-closable.
+- Application opens in full-screen mode by default.
+- Comprehensive JavaDoc documentation is available for all methods and classes.
+
+---
+
+## 👥 Contributors
 
 **Group 17 - CMPE343 Project 3**
 
 ---
 
-## 📄 Lisans
+## 📄 License
 
-Bu proje eğitim amaçlı oluşturulmuştur (CMPE343 Project 3).
-
----
-
-## 📞 Destek
-
-Sorun yaşarsanız:
-1. Bu README dosyasındaki **Sorun Giderme** bölümüne bakın
-2. `DATABASE_SETUP.md` ve `IMPORT_WITH_WORKBENCH.md` dosyalarını kontrol edin
-3. Proje yapısını ve kod yorumlarını inceleyin
+This project is created for educational purposes (CMPE343 Project 3).
 
 ---
 
-**Son Güncelleme**: 2024
+## 📞 Support
+
+If you encounter issues:
+1. Check the **Troubleshooting** section in this README
+2. Review `DATABASE_SETUP.md` and `IMPORT_WITH_WORKBENCH.md` files
+3. Examine project structure and code comments
+4. Generate and review JavaDoc documentation
+
+---
+
+**Last Updated**: January 2025
