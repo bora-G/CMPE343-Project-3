@@ -199,17 +199,8 @@ public class OrderRepository {
      */
     public boolean create(Order order) throws SQLException {
         String sql = "INSERT INTO OrderInfo (customerId, carrierId, orderDate, deliveryDate, subtotal, vatAmount, " +
-                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, invoiceContent, couponCode, canCancelUntil) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-        
-        System.out.println("=== OrderRepository.create() called ===");
-        System.out.println("Customer ID: " + order.getCustomerId());
-        System.out.println("Subtotal: " + order.getSubtotal());
-        System.out.println("Total Cost: " + order.getTotalCost());
-        System.out.println("Status: " + order.getStatus());
-        System.out.println("Delivery Address: " + order.getDeliveryAddress());
-        System.out.println("Invoice Path: " + order.getInvoicePath());
-        System.out.println("Invoice Content (BLOB): " + (order.getInvoiceContent() != null ? order.getInvoiceContent().length + " bytes" : "null"));
+                     "discountAmount, loyaltyDiscount, totalCost, status, deliveryAddress, invoicePath, couponCode, canCancelUntil) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -234,48 +225,25 @@ public class OrderRepository {
             stmt.setString(10, order.getStatus());
             stmt.setString(11, order.getDeliveryAddress());
             stmt.setString(12, order.getInvoicePath());
-            if (order.getInvoiceContent() != null && order.getInvoiceContent().length > 0) {
-                stmt.setBytes(13, order.getInvoiceContent()); // Store PDF as BLOB
-                System.out.println("Setting invoiceContent BLOB: " + order.getInvoiceContent().length + " bytes");
-            } else {
-                stmt.setNull(13, Types.BLOB);
-                System.out.println("Setting invoiceContent to NULL");
-            }
-            stmt.setString(14, order.getCouponCode());
+            stmt.setString(13, order.getCouponCode());
             if (order.getCanCancelUntil() != null) {
-                stmt.setTimestamp(15, Timestamp.valueOf(order.getCanCancelUntil()));
+                stmt.setTimestamp(14, Timestamp.valueOf(order.getCanCancelUntil()));
             } else {
-                stmt.setNull(15, Types.TIMESTAMP);
+                stmt.setNull(14, Types.TIMESTAMP);
             }
             
-            System.out.println("Executing INSERT query...");
             int rowsAffected = stmt.executeUpdate();
-            System.out.println("INSERT executed. Rows affected: " + rowsAffected);
             
             if (rowsAffected > 0) {
                 try (ResultSet generatedKeys = stmt.getGeneratedKeys()) {
                     if (generatedKeys.next()) {
-                        int orderId = generatedKeys.getInt(1);
-                        order.setOrderId(orderId);
-                        System.out.println("Order created successfully! Order ID: " + orderId);
-                        return true;
-                    } else {
-                        System.err.println("WARNING: Order inserted but no generated key returned!");
-                        return false;
+                        order.setOrderId(generatedKeys.getInt(1));
                     }
                 }
-            } else {
-                System.err.println("ERROR: No rows affected by INSERT query!");
-                return false;
+                return true;
             }
-        } catch (SQLException e) {
-            System.err.println("SQLException in OrderRepository.create():");
-            System.err.println("  SQL State: " + e.getSQLState());
-            System.err.println("  Error Code: " + e.getErrorCode());
-            System.err.println("  Message: " + e.getMessage());
-            e.printStackTrace();
-            throw e; // Re-throw to be caught by service layer
         }
+        return false;
     }
     
     /**
@@ -391,27 +359,6 @@ public class OrderRepository {
     }
     
     /**
-     * Update invoice path and PDF content for order
-     */
-    public boolean updateInvoiceData(int orderId, String invoicePath, byte[] invoicePdfBytes) throws SQLException {
-        String sql = "UPDATE OrderInfo SET invoicePath = ?, invoiceContent = ? WHERE orderId = ?";
-        
-        try (Connection conn = dbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setString(1, invoicePath);
-            if (invoicePdfBytes != null && invoicePdfBytes.length > 0) {
-                stmt.setBytes(2, invoicePdfBytes);
-            } else {
-                stmt.setNull(2, Types.BLOB);
-            }
-            stmt.setInt(3, orderId);
-            
-            return stmt.executeUpdate() > 0;
-        }
-    }
-    
-    /**
      * Map ResultSet to Order object
      */
     private Order mapResultSetToOrder(ResultSet rs) throws SQLException {
@@ -472,18 +419,6 @@ public class OrderRepository {
         order.setStatus(rs.getString("status"));
         order.setDeliveryAddress(rs.getString("deliveryAddress"));
         order.setInvoicePath(rs.getString("invoicePath"));
-        
-        // Read BLOB invoice PDF content if available
-        try {
-            byte[] invoiceBytes = rs.getBytes("invoiceContent");
-            if (invoiceBytes != null && invoiceBytes.length > 0) {
-                order.setInvoiceContent(invoiceBytes); // Store PDF as byte array
-            }
-        } catch (SQLException e) {
-            // Column might not exist in old schema, ignore
-            System.err.println("Warning: Could not read invoiceContent: " + e.getMessage());
-        }
-        
         return order;
     }
 }

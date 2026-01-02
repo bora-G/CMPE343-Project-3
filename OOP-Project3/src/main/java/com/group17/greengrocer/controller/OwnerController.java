@@ -20,11 +20,8 @@ import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.io.IOException;
@@ -186,6 +183,9 @@ public class OwnerController implements Initializable {
     private OwnerService ownerService;
     private AuthService authService;
     private com.group17.greengrocer.service.OrderService orderService;
+    private com.group17.greengrocer.service.MessageService messageService;
+    private com.group17.greengrocer.service.CouponService couponService;
+    private com.group17.greengrocer.service.RatingService ratingService;
     
     private ObservableList<Product> products;
     private ObservableList<User> carriers;
@@ -200,6 +200,9 @@ public class OwnerController implements Initializable {
         ownerService = new OwnerService();
         authService = new AuthService();
         orderService = new com.group17.greengrocer.service.OrderService();
+        messageService = new com.group17.greengrocer.service.MessageService();
+        couponService = new com.group17.greengrocer.service.CouponService();
+        ratingService = new com.group17.greengrocer.service.RatingService();
         
         products = FXCollections.observableArrayList();
         carriers = FXCollections.observableArrayList();
@@ -495,72 +498,12 @@ public class OwnerController implements Initializable {
         
         Dialog<Product> dialog = createProductDialog(selected);
         dialog.showAndWait().ifPresent(product -> {
-            if (product == null) {
-                showAlert(Alert.AlertType.ERROR, "Error", "Product data is null. Cannot update.");
-                return;
-            }
-            
             product.setProductId(selected.getProductId());
-            
-            // Debug: Log product data before update
-            System.out.println("Updating product ID: " + product.getProductId());
-            System.out.println("Product name: " + product.getProductName());
-            System.out.println("Image path: " + product.getImagePath());
-            System.out.println("Has image bytes: " + (product.getProductImage() != null ? product.getProductImage().length + " bytes" : "null"));
-            System.out.println("Image MIME type: " + product.getImageMimeType());
-            
-            try {
-                // Validate product before update
-                if (product.getProductName() == null || product.getProductName().trim().isEmpty()) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "Product name cannot be empty.");
-                    return;
-                }
-                if (product.getPricePerKg() == null || product.getPricePerKg().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "Product price must be greater than zero.");
-                    return;
-                }
-                if (product.getStock() == null || product.getStock().compareTo(java.math.BigDecimal.ZERO) < 0) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "Product stock cannot be negative.");
-                    return;
-                }
-                if (product.getThreshold() == null || product.getThreshold().compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                    showAlert(Alert.AlertType.ERROR, "Validation Error", "Product threshold must be greater than zero.");
-                    return;
-                }
-                
-                if (productService.updateProduct(product)) {
-                    showAlert(Alert.AlertType.INFORMATION, "Success", "Product updated successfully!");
-                    loadData();
-                } else {
-                    showAlert(Alert.AlertType.ERROR, "Update Failed", 
-                        "Failed to update product. No rows were affected.\n\n" +
-                        "Product ID: " + product.getProductId() + "\n" +
-                        "Please check:\n" +
-                        "1. Database connection is active\n" +
-                        "2. Product ID exists in database\n" +
-                        "3. All required fields are filled\n\n" +
-                        "Check console for detailed error messages.");
-                }
-            } catch (java.sql.SQLException ex) {
-                String errorMsg = "SQL Error: " + ex.getMessage();
-                if (ex.getSQLState() != null) {
-                    errorMsg += "\nSQL State: " + ex.getSQLState();
-                }
-                if (ex.getErrorCode() != 0) {
-                    errorMsg += "\nError Code: " + ex.getErrorCode();
-                }
-                showAlert(Alert.AlertType.ERROR, "Database Error", 
-                    "Failed to update product in database:\n\n" + errorMsg + "\n\nPlease check the console for full stack trace.");
-                ex.printStackTrace();
-            } catch (IllegalArgumentException ex) {
-                showAlert(Alert.AlertType.ERROR, "Validation Error", 
-                    "Invalid product data: " + ex.getMessage());
-                ex.printStackTrace();
-            } catch (Exception ex) {
-                showAlert(Alert.AlertType.ERROR, "Unexpected Error", 
-                    "An unexpected error occurred:\n\n" + ex.getClass().getSimpleName() + ": " + ex.getMessage() + 
-                    "\n\nPlease check the console for details.");
-                ex.printStackTrace();
+            if (productService.updateProduct(product)) {
+                showAlert(Alert.AlertType.INFORMATION, "Success", "Product updated successfully!");
+                loadData();
+            } else {
+                showAlert(Alert.AlertType.ERROR, "Error", "Failed to update product.");
             }
         });
     }
@@ -605,259 +548,6 @@ public class OwnerController implements Initializable {
         TextField priceField = new TextField(existing != null ? existing.getPricePerKg().toString() : "");
         TextField stockField = new TextField(existing != null ? existing.getStock().toString() : "");
         TextField thresholdField = new TextField(existing != null ? existing.getThreshold().toString() : "5.0");
-        TextField imagePathField = new TextField(existing != null && existing.getImagePath() != null ? existing.getImagePath() : "");
-        imagePathField.setPromptText("Image will be selected from your computer (use Browse button)");
-        imagePathField.setEditable(false); // Make it read-only since we only use Browse button
-        imagePathField.setEditable(true);
-        
-        // Image preview
-        ImageView imagePreview = new ImageView();
-        imagePreview.setFitWidth(150);
-        imagePreview.setFitHeight(150);
-        imagePreview.setPreserveRatio(true);
-        imagePreview.setSmooth(true);
-        imagePreview.setCache(true);
-        
-        // Load existing image if available (priority: BLOB > file path > URL)
-        if (existing != null) {
-            try {
-                Image image = null;
-                
-                // First try to load from BLOB
-                if (existing.getProductImage() != null && existing.getProductImage().length > 0) {
-                    try {
-                        java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(existing.getProductImage());
-                        image = new Image(bais);
-                        imagePreview.setImage(image);
-                    } catch (Exception e) {
-                        System.err.println("Failed to load image from BLOB: " + e.getMessage());
-                    }
-                }
-                
-                // If BLOB failed, try file path (only local files, no URLs)
-                if (image == null && existing.getImagePath() != null && !existing.getImagePath().trim().isEmpty()) {
-                    String imagePath = existing.getImagePath();
-                    // Only try local file paths, skip URLs
-                    if (!imagePath.startsWith("http://") && !imagePath.startsWith("https://")) {
-                        java.io.File imageFile = new java.io.File(imagePath);
-                        if (imageFile.exists()) {
-                            image = new Image(imageFile.toURI().toString());
-                        } else {
-                            // Try as resource path
-                            try {
-                                image = new Image(getClass().getResourceAsStream("/" + imagePath));
-                            } catch (Exception ex) {
-                                try {
-                                    image = new Image(getClass().getResourceAsStream(imagePath));
-                                } catch (Exception ex2) {
-                                    // Image not found, continue without preview
-                                }
-                            }
-                        }
-                        if (image != null) {
-                            imagePreview.setImage(image);
-                        }
-                    }
-                }
-            } catch (Exception e) {
-                // Image preview failed, continue without preview
-                System.err.println("Failed to load existing image: " + e.getMessage());
-            }
-        }
-        
-        // Browse button for image selection
-        Button browseImageButton = new Button("Browse Image...");
-        browseImageButton.setOnAction(e -> {
-            FileChooser fileChooser = new FileChooser();
-            fileChooser.setTitle("Select Product Image");
-            // Only accept JPG and PNG files
-            fileChooser.getExtensionFilters().addAll(
-                new FileChooser.ExtensionFilter("Image Files (JPG, PNG only)", "*.jpg", "*.jpeg", "*.png"),
-                new FileChooser.ExtensionFilter("JPEG Files", "*.jpg", "*.jpeg"),
-                new FileChooser.ExtensionFilter("PNG Files", "*.png")
-            );
-            
-            java.io.File selectedFile = fileChooser.showOpenDialog(dialog.getDialogPane().getScene().getWindow());
-            if (selectedFile != null) {
-                try {
-                    // Validate file extension (only JPG and PNG)
-                    String originalFileName = selectedFile.getName();
-                    String fileNameLower = originalFileName.toLowerCase();
-                    if (!fileNameLower.endsWith(".jpg") && !fileNameLower.endsWith(".jpeg") && !fileNameLower.endsWith(".png")) {
-                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                        errorAlert.setTitle("Invalid Format");
-                        errorAlert.setHeaderText(null);
-                        errorAlert.setContentText("Only JPG and PNG image formats are allowed.\nPlease select a .jpg, .jpeg, or .png file.");
-                        errorAlert.showAndWait();
-                        // Ensure main dialog buttons remain after alert
-                        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                        return;
-                    }
-                    
-                    // Check file size (max 5MB)
-                    long fileSize = selectedFile.length();
-                    long maxSize = 5 * 1024 * 1024; // 5MB
-                    if (fileSize > maxSize) {
-                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                        errorAlert.setTitle("File Too Large");
-                        errorAlert.setHeaderText(null);
-                        errorAlert.setContentText("Image file size must be less than 5MB.\nCurrent size: " + 
-                            String.format("%.2f", fileSize / 1024.0 / 1024.0) + " MB");
-                        errorAlert.showAndWait();
-                        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                        return;
-                    }
-                    
-                    // Load image to check dimensions
-                    Image testImage = new Image(selectedFile.toURI().toString());
-                    int imageWidth = (int) testImage.getWidth();
-                    int imageHeight = (int) testImage.getHeight();
-                    
-                    // Standard resolution: minimum 200x200, maximum 2000x2000, recommended 800x800
-                    int minWidth = 200;
-                    int minHeight = 200;
-                    int maxWidth = 2000;
-                    int maxHeight = 2000;
-                    int recommendedWidth = 800;
-                    int recommendedHeight = 800;
-                    
-                    if (imageWidth < minWidth || imageHeight < minHeight) {
-                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                        errorAlert.setTitle("Image Too Small");
-                        errorAlert.setHeaderText(null);
-                        errorAlert.setContentText(String.format("Image resolution is too small.\nMinimum size: %dx%d pixels\nCurrent size: %dx%d pixels", 
-                            minWidth, minHeight, imageWidth, imageHeight));
-                        errorAlert.showAndWait();
-                        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                        return;
-                    }
-                    
-                    if (imageWidth > maxWidth || imageHeight > maxHeight) {
-                        Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                        errorAlert.setTitle("Image Too Large");
-                        errorAlert.setHeaderText(null);
-                        errorAlert.setContentText(String.format("Image resolution is too large.\nMaximum size: %dx%d pixels\nCurrent size: %dx%d pixels", 
-                            maxWidth, maxHeight, imageWidth, imageHeight));
-                        errorAlert.showAndWait();
-                        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                        return;
-                    }
-                    
-                    // Warn if not recommended size (but allow it)
-                    if (imageWidth != recommendedWidth || imageHeight != recommendedHeight) {
-                        Alert sizeWarning = new Alert(Alert.AlertType.WARNING);
-                        sizeWarning.setTitle("Image Size Warning");
-                        sizeWarning.setHeaderText("Recommended image size: 800x800 pixels");
-                        sizeWarning.setContentText(String.format(
-                            "Current size: %dx%d pixels\nRecommended: 800x800 pixels for best quality.\nDo you want to continue?",
-                            imageWidth, imageHeight));
-                        sizeWarning.getButtonTypes().setAll(ButtonType.YES, ButtonType.NO);
-                        if (sizeWarning.showAndWait().orElse(ButtonType.NO) == ButtonType.NO) {
-                            return;
-                        }
-                        // After warning dialog closes, ensure main dialog buttons are still there
-                        dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                    }
-                    
-                    // Create images/products directory if it doesn't exist
-                    java.io.File imagesDir = new java.io.File("images/products");
-                    if (!imagesDir.exists()) {
-                        imagesDir.mkdirs();
-                    }
-                    
-                    // Generate unique filename if product exists (use productId) or use timestamp
-                    String baseName = originalFileName.substring(0, originalFileName.lastIndexOf('.'));
-                    String extension = originalFileName.substring(originalFileName.lastIndexOf('.'));
-                    final String fileName;
-                    if (existing != null) {
-                        fileName = "product_" + existing.getProductId() + "_" + baseName + extension;
-                    } else {
-                        fileName = "product_" + System.currentTimeMillis() + "_" + baseName + extension;
-                    }
-                    
-                    java.io.File destFile = new java.io.File(imagesDir, fileName);
-                    
-                    // Copy file
-                    java.nio.file.Files.copy(
-                        selectedFile.toPath(),
-                        destFile.toPath(),
-                        java.nio.file.StandardCopyOption.REPLACE_EXISTING
-                    );
-                    
-                    // Read image file as bytes for BLOB storage
-                    byte[] imageBytes = java.nio.file.Files.readAllBytes(selectedFile.toPath());
-                    
-                    // Determine MIME type (only JPG and PNG)
-                    final String mimeType;
-                    String fileNameLowerFinal = fileName.toLowerCase();
-                    if (fileNameLowerFinal.endsWith(".png")) {
-                        mimeType = "image/png";
-                    } else {
-                        mimeType = "image/jpeg"; // JPG/JPEG
-                    }
-                    
-                    // Store image data in a temporary field (will be saved when product is saved)
-                    final String finalMimeType = mimeType;
-                    java.util.Map<String, Object> imageDataMap = new java.util.HashMap<>();
-                    imageDataMap.put("imageBytes", imageBytes);
-                    imageDataMap.put("mimeType", finalMimeType);
-                    imageDataMap.put("width", imageWidth);
-                    imageDataMap.put("height", imageHeight);
-                    imagePathField.setUserData(imageDataMap);
-                    
-                    // Debug: Verify image data was stored
-                    System.out.println("Image data stored in UserData:");
-                    System.out.println("  - Bytes: " + imageBytes.length);
-                    System.out.println("  - MIME Type: " + finalMimeType);
-                    System.out.println("  - Dimensions: " + imageWidth + "x" + imageHeight);
-                    
-                    // Set image path (relative path for portability)
-                    String relativePath = "images/products/" + fileName;
-                    imagePathField.setText(relativePath);
-                    
-                    // Update preview
-                    Image previewImage = new Image(destFile.toURI().toString());
-                    imagePreview.setImage(previewImage);
-                    
-                    // Ensure OK button is still visible after image load
-                    // Re-apply button types to ensure they remain
-                    dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                    
-                    // Show success message
-                    Alert successAlert = new Alert(Alert.AlertType.INFORMATION);
-                    successAlert.setTitle("Image Loaded");
-                    successAlert.setHeaderText(null);
-                    successAlert.setContentText(String.format("Image loaded successfully!\nSize: %dx%d pixels\nFile: %s\nBytes: %d", 
-                        imageWidth, imageHeight, fileName, imageBytes.length));
-                    successAlert.showAndWait();
-                    dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                    
-                } catch (Exception ex) {
-                    // Ensure OK button is still visible even on error
-                    dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                    Alert errorAlert = new Alert(Alert.AlertType.ERROR);
-                    errorAlert.setTitle("Error");
-                    errorAlert.setHeaderText(null);
-                    errorAlert.setContentText("Failed to load image: " + ex.getMessage());
-                    errorAlert.showAndWait();
-                    dialog.getDialogPane().getButtonTypes().setAll(ButtonType.OK, ButtonType.CANCEL);
-                    ex.printStackTrace();
-                }
-            }
-        });
-        
-        // Only Browse button, no URL option
-        HBox imageButtonBox = new HBox(10);
-        imageButtonBox.getChildren().add(browseImageButton);
-        
-        VBox imageBox = new VBox(5);
-        imageBox.getChildren().addAll(
-            new Label("Product Image:"),
-            imagePreview,
-            new Label("Image Path:"),
-            imagePathField,
-            imageButtonBox
-        );
         
         VBox content = new VBox(10);
         content.setPadding(new Insets(20));
@@ -866,148 +556,21 @@ public class OwnerController implements Initializable {
             new Label("Product Type:"), typeField,
             new Label("Price per Kg:"), priceField,
             new Label("Stock:"), stockField,
-            new Label("Threshold:"), thresholdField,
-            imageBox
+            new Label("Threshold:"), thresholdField
         );
         
         dialog.getDialogPane().setContent(content);
         dialog.getDialogPane().getButtonTypes().addAll(ButtonType.OK, ButtonType.CANCEL);
         
-        // Add validation for OK button
-        javafx.scene.control.Button okButton = (javafx.scene.control.Button) dialog.getDialogPane().lookupButton(ButtonType.OK);
-        
-        okButton.addEventFilter(javafx.event.ActionEvent.ACTION, e -> {
-            try {
-                // Validate and parse price
-                BigDecimal price;
-                try {
-                    price = new BigDecimal(priceField.getText().trim());
-                    if (price.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Price cannot be negative.");
-                        e.consume();
-                        return;
-                    }
-                } catch (NumberFormatException ex) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Price must be a valid number.");
-                    e.consume();
-                    return;
-                }
-                
-                // Validate and parse stock
-                BigDecimal stock;
-                try {
-                    stock = new BigDecimal(stockField.getText().trim());
-                    if (stock.compareTo(java.math.BigDecimal.ZERO) < 0) {
-                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Stock cannot be negative.");
-                        e.consume();
-                        return;
-                    }
-                } catch (NumberFormatException ex) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Stock must be a valid number.");
-                    e.consume();
-                    return;
-                }
-                
-                // Validate and parse threshold (must be positive)
-                BigDecimal threshold;
-                try {
-                    threshold = new BigDecimal(thresholdField.getText().trim());
-                    if (threshold.compareTo(java.math.BigDecimal.ZERO) <= 0) {
-                        showAlert(Alert.AlertType.ERROR, "Invalid Input", "Threshold must be a positive number (greater than zero).");
-                        e.consume();
-                        return;
-                    }
-                } catch (NumberFormatException ex) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Threshold must be a valid number.");
-                    e.consume();
-                    return;
-                }
-                
-                // Validate required fields
-                if (nameField.getText().trim().isEmpty() || typeField.getText().trim().isEmpty()) {
-                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Product name and type are required.");
-                    e.consume();
-                    return;
-                }
-            } catch (Exception ex) {
-                showAlert(Alert.AlertType.ERROR, "Error", "An error occurred: " + ex.getMessage());
-                e.consume();
-            }
-        });
-        
         dialog.setResultConverter(buttonType -> {
             if (buttonType == ButtonType.OK) {
-                try {
-                    Product product;
-                    if (existing != null) {
-                        // Create a new Product object to avoid modifying the existing one directly
-                        product = new Product();
-                        product.setProductId(existing.getProductId());
-                    } else {
-                        product = new Product();
-                    }
-                    
-                    product.setProductName(nameField.getText().trim());
-                    product.setProductType(typeField.getText().trim());
-                    product.setPricePerKg(new BigDecimal(priceField.getText().trim()));
-                    product.setStock(new BigDecimal(stockField.getText().trim()));
-                    product.setThreshold(new BigDecimal(thresholdField.getText().trim()));
-                    // Description is optional, set to null if not provided
-                    product.setDescription(null);
-                    
-                    // Handle image data: prioritize new image if uploaded, otherwise keep existing
-                    Object userData = imagePathField.getUserData();
-                    if (userData instanceof java.util.Map) {
-                        @SuppressWarnings("unchecked")
-                        java.util.Map<String, Object> imageData = (java.util.Map<String, Object>) userData;
-                        if (imageData.containsKey("imageBytes")) {
-                            // New image was uploaded
-                            byte[] imageBytes = (byte[]) imageData.get("imageBytes");
-                            String mimeType = (String) imageData.get("mimeType");
-                            product.setProductImage(imageBytes);
-                            product.setImageMimeType(mimeType);
-                            product.setImagePath(imagePathField.getText().trim().isEmpty() ? null : imagePathField.getText().trim());
-                            System.out.println("New image set: " + (imageBytes != null ? imageBytes.length + " bytes" : "null") + ", MIME: " + mimeType);
-                        } else {
-                            // No new image, keep existing or set to null
-                            if (existing != null && existing.getProductImage() != null) {
-                                product.setProductImage(existing.getProductImage());
-                                product.setImageMimeType(existing.getImageMimeType());
-                                product.setImagePath(existing.getImagePath());
-                                System.out.println("Keeping existing image");
-                            } else {
-                                product.setImagePath(imagePathField.getText().trim().isEmpty() ? null : imagePathField.getText().trim());
-                                product.setProductImage(null);
-                                product.setImageMimeType(null);
-                                System.out.println("No image data");
-                            }
-                        }
-                    } else {
-                        // No userData, check if existing product has image
-                        if (existing != null && existing.getProductImage() != null) {
-                            product.setProductImage(existing.getProductImage());
-                            product.setImageMimeType(existing.getImageMimeType());
-                            product.setImagePath(existing.getImagePath());
-                            System.out.println("Keeping existing image (no userData)");
-                        } else {
-                            product.setImagePath(imagePathField.getText().trim().isEmpty() ? null : imagePathField.getText().trim());
-                            product.setProductImage(null);
-                            product.setImageMimeType(null);
-                            System.out.println("No image data (no userData)");
-                        }
-                    }
-                    
-                    return product;
-                } catch (NumberFormatException e) {
-                    // This should not happen due to validation, but handle it just in case
-                    showAlert(Alert.AlertType.ERROR, "Invalid Input", "Please enter valid numeric values.");
-                    e.printStackTrace();
-                    return null;
-                } catch (Exception e) {
-                    showAlert(Alert.AlertType.ERROR, "Error", "An error occurred while creating product: " + e.getMessage());
-                    e.printStackTrace();
-                    return null;
-                }
+                Product product = new Product();
+                product.setProductName(nameField.getText());
+                product.setProductType(typeField.getText());
+                product.setPricePerKg(new BigDecimal(priceField.getText()));
+                product.setStock(new BigDecimal(stockField.getText()));
+                product.setThreshold(new BigDecimal(thresholdField.getText()));
+                return product;
             }
             return null;
         });
@@ -1067,7 +630,8 @@ public class OwnerController implements Initializable {
         dialog.setTitle(existing == null ? "Hire Carrier" : "Update Carrier");
         
         TextField usernameField = new TextField(existing != null ? existing.getUsername() : "");
-        TextField passwordField = new TextField(existing != null ? existing.getPassword() : "");
+        // Don't show existing password (it's hashed anyway) - leave empty for security
+        TextField passwordField = new TextField("");
         TextField nameField = new TextField(existing != null ? existing.getFullName() : "");
         TextField emailField = new TextField(existing != null ? existing.getEmail() : "");
         TextField phoneField = new TextField(existing != null ? existing.getPhone() : "");
@@ -1462,12 +1026,10 @@ public class OwnerController implements Initializable {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
             Parent root = loader.load();
-            Scene scene = new Scene(root, 960, 540);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Login");
-            stage.centerOnScreen();
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

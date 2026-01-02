@@ -2,6 +2,7 @@ package com.group17.greengrocer.repository;
 
 import com.group17.greengrocer.model.User;
 import com.group17.greengrocer.util.DatabaseAdapter;
+import com.group17.greengrocer.util.PasswordUtil;
 
 import java.sql.*;
 import java.util.ArrayList;
@@ -19,20 +20,40 @@ public class UserRepository {
     }
     
     /**
-     * Authenticate user by username and password
+     * Authenticate user by username and password.
+     * Compares the provided password with the stored hash using SHA-256.
      */
     public User authenticate(String username, String password) throws SQLException {
-        String sql = "SELECT * FROM UserInfo WHERE username = ? AND password = ? AND isActive = TRUE";
+        // First, get the user by username to retrieve the stored hash
+        String sql = "SELECT * FROM UserInfo WHERE username = ? AND isActive = TRUE";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             stmt.setString(1, username);
-            stmt.setString(2, password);
             
             try (ResultSet rs = stmt.executeQuery()) {
                 if (rs.next()) {
-                    return mapResultSetToUser(rs);
+                    User user = mapResultSetToUser(rs);
+                    String storedHash = user.getPassword();
+                    
+                    // Verify password against stored hash
+                    // Support both hashed passwords (new) and plain text (legacy migration)
+                    if (PasswordUtil.isHashed(storedHash)) {
+                        // New hashed password - verify using SHA-256
+                        if (PasswordUtil.verifyPassword(password, storedHash)) {
+                            return user;
+                        }
+                    } else {
+                        // Legacy plain text password - compare directly (for migration period)
+                        // TODO: After migration, remove this else block
+                        if (storedHash.equals(password)) {
+                            // Auto-upgrade: hash the password and save it
+                            user.setPassword(PasswordUtil.hashPassword(password));
+                            update(user);
+                            return user;
+                        }
+                    }
                 }
             }
         }
@@ -115,7 +136,8 @@ public class UserRepository {
     }
     
     /**
-     * Create a new user
+     * Create a new user.
+     * Automatically hashes the password before storing it.
      */
     public boolean create(User user) throws SQLException {
         String sql = "INSERT INTO UserInfo (username, password, role, fullName, email, phone, address, isActive) " +
@@ -124,8 +146,14 @@ public class UserRepository {
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             
+            // Hash the password if it's not already hashed
+            String passwordToStore = user.getPassword();
+            if (!PasswordUtil.isHashed(passwordToStore)) {
+                passwordToStore = PasswordUtil.hashPassword(passwordToStore);
+            }
+            
             stmt.setString(1, user.getUsername());
-            stmt.setString(2, user.getPassword());
+            stmt.setString(2, passwordToStore);
             stmt.setString(3, user.getRole());
             stmt.setString(4, user.getFullName());
             stmt.setString(5, user.getEmail());
@@ -141,6 +169,8 @@ public class UserRepository {
                         user.setUserId(generatedKeys.getInt(1));
                     }
                 }
+                // Update user object with hashed password
+                user.setPassword(passwordToStore);
                 return true;
             }
         }
@@ -148,7 +178,8 @@ public class UserRepository {
     }
     
     /**
-     * Update user information
+     * Update user information.
+     * Automatically hashes the password if it's a new plain text password.
      */
     public boolean update(User user) throws SQLException {
         String sql = "UPDATE UserInfo SET username = ?, password = ?, role = ?, fullName = ?, " +
@@ -157,8 +188,15 @@ public class UserRepository {
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
+            // Hash the password if it's not already hashed
+            String passwordToStore = user.getPassword();
+            if (!PasswordUtil.isHashed(passwordToStore)) {
+                passwordToStore = PasswordUtil.hashPassword(passwordToStore);
+                user.setPassword(passwordToStore);
+            }
+            
             stmt.setString(1, user.getUsername());
-            stmt.setString(2, user.getPassword());
+            stmt.setString(2, passwordToStore);
             stmt.setString(3, user.getRole());
             stmt.setString(4, user.getFullName());
             stmt.setString(5, user.getEmail());

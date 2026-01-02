@@ -96,18 +96,10 @@ public class OrderItemRepository {
         String sql = "INSERT INTO OrderItem (orderId, productId, quantity, unitPrice, subtotal) " +
                      "VALUES (?, ?, ?, ?, ?)";
         
-        System.out.println("=== OrderItemRepository.createBatch() called ===");
-        System.out.println("Number of items: " + items.size());
-        
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
             for (OrderItem item : items) {
-                System.out.println("Adding item to batch: OrderID=" + item.getOrderId() + 
-                    ", ProductID=" + item.getProductId() + 
-                    ", Quantity=" + item.getQuantity() + 
-                    ", UnitPrice=" + item.getUnitPrice() + 
-                    ", Subtotal=" + item.getSubtotal());
                 stmt.setInt(1, item.getOrderId());
                 stmt.setInt(2, item.getProductId());
                 stmt.setBigDecimal(3, item.getQuantity());
@@ -116,33 +108,8 @@ public class OrderItemRepository {
                 stmt.addBatch();
             }
             
-            System.out.println("Executing batch insert...");
             int[] results = stmt.executeBatch();
-            System.out.println("Batch executed. Results: " + java.util.Arrays.toString(results));
-            
-            // Check if all items were inserted successfully
-            boolean allSuccess = true;
-            for (int i = 0; i < results.length; i++) {
-                if (results[i] <= 0 && results[i] != Statement.SUCCESS_NO_INFO) {
-                    System.err.println("ERROR: Item " + i + " failed to insert. Result code: " + results[i]);
-                    allSuccess = false;
-                }
-            }
-            
-            if (results.length != items.size()) {
-                System.err.println("ERROR: Expected " + items.size() + " results, got " + results.length);
-                return false;
-            }
-            
-            System.out.println("Batch insert " + (allSuccess ? "succeeded" : "failed"));
-            return allSuccess;
-        } catch (SQLException e) {
-            System.err.println("SQLException in OrderItemRepository.createBatch():");
-            System.err.println("  SQL State: " + e.getSQLState());
-            System.err.println("  Error Code: " + e.getErrorCode());
-            System.err.println("  Message: " + e.getMessage());
-            e.printStackTrace();
-            throw e; // Re-throw to be caught by service layer
+            return results.length == items.size();
         }
     }
     

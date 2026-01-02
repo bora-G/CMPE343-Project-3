@@ -20,6 +20,9 @@ import javafx.stage.Stage;
 
 import java.io.IOException;
 import java.net.URL;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ResourceBundle;
 
 /**
@@ -478,12 +481,10 @@ public class CarrierController implements Initializable {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
             Parent root = loader.load();
-            Scene scene = new Scene(root, 960, 540);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Login");
-            stage.centerOnScreen();
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();

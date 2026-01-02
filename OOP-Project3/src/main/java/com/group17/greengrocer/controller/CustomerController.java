@@ -10,8 +10,6 @@ import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.geometry.Insets;
 import javafx.scene.control.*;
-import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
@@ -61,27 +59,20 @@ public class CustomerController {
     private Button messageOwnerButton;
     
     @FXML
-    private Button couponsButton;
-    
-    @FXML
     private VBox productsContainer;
     
     private ProductService productService;
     private AuthService authService;
     private com.group17.greengrocer.service.OrderService orderService;
-    private com.group17.greengrocer.service.CouponService couponService;
     private Map<Integer, OrderItem> cart; // productId -> OrderItem
     private Timeline autoRefreshTimeline;
-    private Map<String, Boolean> titledPaneExpandedStates; // Store expanded state for each type
     
     @FXML
     public void initialize() {
         productService = new ProductService();
         authService = new AuthService();
         orderService = new com.group17.greengrocer.service.OrderService();
-        couponService = new com.group17.greengrocer.service.CouponService();
         cart = new HashMap<>();
-        titledPaneExpandedStates = new HashMap<>();
         
         // Set username in top right corner
         if (authService.getCurrentUser() != null) {
@@ -131,9 +122,6 @@ public class CustomerController {
      * Load products grouped by type using TitledPane
      */
     private void loadProductsByType() {
-        // Save current expanded states before clearing
-        saveTitledPaneStates();
-        
         productsContainer.getChildren().clear();
         
         List<String> types = productService.getProductTypes();
@@ -143,27 +131,7 @@ public class CustomerController {
             List<Product> products = productService.getProductsByType(type);
             if (!products.isEmpty()) {
                 TitledPane titledPane = createProductTypePane(type, products);
-                // Restore expanded state if it was saved
-                if (titledPaneExpandedStates.containsKey(type)) {
-                    titledPane.setExpanded(titledPaneExpandedStates.get(type));
-                } else {
-                    // Default: expanded for new types
-                    titledPane.setExpanded(true);
-                    titledPaneExpandedStates.put(type, true);
-                }
                 productsContainer.getChildren().add(titledPane);
-            }
-        }
-    }
-    
-    /**
-     * Save current expanded states of all TitledPanes
-     */
-    private void saveTitledPaneStates() {
-        for (javafx.scene.Node node : productsContainer.getChildren()) {
-            if (node instanceof TitledPane) {
-                TitledPane pane = (TitledPane) node;
-                titledPaneExpandedStates.put(pane.getText(), pane.isExpanded());
             }
         }
     }
@@ -195,67 +163,6 @@ public class CustomerController {
         // Store product reference in row's userData for later refresh
         row.setUserData(product);
         
-        // Create ImageView for product image
-        ImageView imageView = new ImageView();
-        imageView.setFitWidth(60);
-        imageView.setFitHeight(60);
-        imageView.setPreserveRatio(true);
-        imageView.setSmooth(true);
-        imageView.setCache(true);
-        
-        // Load product image if available
-        // Priority: 1. BLOB from database, 2. File path, 3. URL
-        if (product.getProductImage() != null && product.getProductImage().length > 0) {
-            // Load from BLOB (database)
-            try {
-                java.io.ByteArrayInputStream bais = new java.io.ByteArrayInputStream(product.getProductImage());
-                Image image = new Image(bais);
-                imageView.setImage(image);
-            } catch (Exception e) {
-                System.err.println("Failed to load image from BLOB for product: " + product.getProductName() + " - " + e.getMessage());
-            }
-        } else if (product.getImagePath() != null && !product.getImagePath().trim().isEmpty()) {
-            try {
-                String imagePath = product.getImagePath();
-                // Handle both file paths and URLs
-                Image image;
-                if (imagePath.startsWith("http://") || imagePath.startsWith("https://")) {
-                    // Load from URL
-                    image = new Image(imagePath);
-                } else {
-                    // Try as file path (relative or absolute)
-                    java.io.File imageFile = new java.io.File(imagePath);
-                    if (imageFile.exists()) {
-                        image = new Image(imageFile.toURI().toString());
-                    } else {
-                        // Try as resource path (for images in resources folder)
-                        try {
-                            image = new Image(getClass().getResourceAsStream("/" + imagePath));
-                        } catch (Exception ex) {
-                            // If resource path fails, try without leading slash
-                            try {
-                                image = new Image(getClass().getResourceAsStream(imagePath));
-                            } catch (Exception ex2) {
-                                // If all fails, try direct file path again
-                                imageFile = new java.io.File(imagePath);
-                                if (imageFile.exists()) {
-                                    image = new Image(imageFile.toURI().toString());
-                                } else {
-                                    throw new Exception("Image file not found: " + imagePath);
-                                }
-                            }
-                        }
-                    }
-                }
-                imageView.setImage(image);
-            } catch (Exception e) {
-                // If image loading fails, use placeholder or leave empty
-                System.err.println("Failed to load image for product: " + product.getProductName() + " - " + e.getMessage());
-                // Optionally set a placeholder image
-                // imageView.setImage(new Image(getClass().getResourceAsStream("/images/placeholder.png")));
-            }
-        }
-        
         Label nameLabel = new Label(product.getProductName());
         nameLabel.setPrefWidth(200);
         
@@ -281,7 +188,7 @@ public class CustomerController {
         Button addButton = new Button("Add to Cart");
         addButton.setOnAction(e -> handleAddToCart(product, quantityField, row));
         
-        row.getChildren().addAll(imageView, nameLabel, priceLabel, stockLabel, quantityField, addButton);
+        row.getChildren().addAll(nameLabel, priceLabel, stockLabel, quantityField, addButton);
         return row;
     }
     
@@ -379,11 +286,6 @@ public class CustomerController {
     private void handleSearch() {
         String searchTerm = searchField.getText().trim();
         
-        // Save current expanded states before clearing (if not searching)
-        if (searchTerm.isEmpty()) {
-            saveTitledPaneStates();
-        }
-        
         productsContainer.getChildren().clear();
         
         if (searchTerm.isEmpty()) {
@@ -405,12 +307,6 @@ public class CustomerController {
             
             for (Map.Entry<String, List<Product>> entry : groupedProducts.entrySet()) {
                 TitledPane titledPane = createProductTypePane(entry.getKey(), entry.getValue());
-                // Restore expanded state for search results too
-                if (titledPaneExpandedStates.containsKey(entry.getKey())) {
-                    titledPane.setExpanded(titledPaneExpandedStates.get(entry.getKey()));
-                } else {
-                    titledPane.setExpanded(true);
-                }
                 productsContainer.getChildren().add(titledPane);
             }
         }
@@ -434,10 +330,7 @@ public class CustomerController {
             
             Stage cartStage = new Stage();
             cartStage.setTitle("Shopping Cart");
-            Scene cartScene = new Scene(root, 960, 540);
-            cartScene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
-            cartStage.setScene(cartScene);
-            cartStage.centerOnScreen();
+            cartStage.setScene(new Scene(root));
             
             // Refresh product list when cart window is closed
             cartStage.setOnCloseRequest(e -> {
@@ -568,12 +461,10 @@ public class CustomerController {
         try {
             FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
             Parent root = loader.load();
-            Scene scene = new Scene(root, 960, 540);
-            scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+            Scene scene = new Scene(root);
             Stage stage = (Stage) logoutButton.getScene().getWindow();
             stage.setScene(scene);
             stage.setTitle("Login");
-            stage.centerOnScreen();
             stage.show();
         } catch (IOException e) {
             e.printStackTrace();
@@ -768,135 +659,25 @@ public class CustomerController {
     }
     
     /**
-     * Handle download invoice action - Downloads PDF from database (BLOB) and shares with customer
+     * Handle download invoice action
      */
     private void handleDownloadInvoice(com.group17.greengrocer.model.Order order) {
-        // Priority: 1. PDF from database (BLOB), 2. File path (backup)
-        byte[] invoicePdfBytes = order.getInvoiceContent();
+        if (order.getInvoicePath() == null || order.getInvoicePath().isEmpty()) {
+            showAlert(Alert.AlertType.WARNING, "No Invoice", "Invoice not available for this order.");
+            return;
+        }
         
-        if (invoicePdfBytes != null && invoicePdfBytes.length > 0) {
-            // Invoice PDF is stored in database (BLOB) - save to file and open
+        java.io.File invoiceFile = new java.io.File(order.getInvoicePath());
+        if (invoiceFile.exists()) {
             try {
-                // Create invoices directory if it doesn't exist
-                java.io.File invoiceDir = new java.io.File("invoices");
-                if (!invoiceDir.exists()) {
-                    invoiceDir.mkdirs();
-                }
-                
-                // Save PDF from database to file
-                String invoiceFileName = "order_" + order.getOrderId() + "_invoice.pdf";
-                java.io.File invoiceFile = new java.io.File(invoiceDir, invoiceFileName);
-                
-                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(invoiceFile)) {
-                    fos.write(invoicePdfBytes);
-                }
-                
-                // Open PDF file for customer
-                try {
-                    java.awt.Desktop.getDesktop().open(invoiceFile);
-                    showAlert(Alert.AlertType.INFORMATION, "Invoice Downloaded", 
-                        "Invoice has been downloaded and opened.\nLocation: " + invoiceFile.getAbsolutePath());
-                } catch (Exception e) {
-                    showAlert(Alert.AlertType.INFORMATION, "Invoice Downloaded", 
-                        "Invoice has been saved to:\n" + invoiceFile.getAbsolutePath());
-                }
+                java.awt.Desktop.getDesktop().open(invoiceFile);
             } catch (Exception e) {
-                System.err.println("Error saving invoice from database: " + e.getMessage());
-                e.printStackTrace();
-                showAlert(Alert.AlertType.ERROR, "Error", "Failed to download invoice: " + e.getMessage());
-            }
-        } else if (order.getInvoicePath() != null && !order.getInvoicePath().isEmpty()) {
-            // Fallback: Try file path (backup)
-            java.io.File invoiceFile = new java.io.File(order.getInvoicePath());
-            if (invoiceFile.exists()) {
-                try {
-                    java.awt.Desktop.getDesktop().open(invoiceFile);
-                } catch (Exception e) {
-                    showAlert(Alert.AlertType.INFORMATION, "Invoice", 
-                        "Invoice location: " + invoiceFile.getAbsolutePath());
-                }
-            } else {
-                showAlert(Alert.AlertType.WARNING, "Invoice Not Found", 
-                    "Invoice PDF is not available in database or file system.");
+                showAlert(Alert.AlertType.INFORMATION, "Invoice", 
+                    "Invoice location: " + invoiceFile.getAbsolutePath());
             }
         } else {
-            showAlert(Alert.AlertType.WARNING, "No Invoice", "Invoice not available for this order.");
+            showAlert(Alert.AlertType.WARNING, "File Not Found", "Invoice file not found at: " + order.getInvoicePath());
         }
-    }
-    
-    /**
-     * Handle view coupons action - Show all customer coupons
-     */
-    @FXML
-    private void handleViewCoupons() {
-        int customerId = com.group17.greengrocer.util.Session.getInstance().getCurrentUserId();
-        List<com.group17.greengrocer.model.Coupon> allCoupons = couponService.getCustomerCoupons(customerId);
-        List<com.group17.greengrocer.model.Coupon> availableCoupons = couponService.getAvailableCustomerCoupons(customerId);
-        
-        // Create dialog to show coupons
-        Dialog<Void> dialog = new Dialog<>();
-        dialog.setTitle("My Coupons");
-        dialog.setHeaderText("Your Coupons");
-        
-        // Create table to display coupons
-        TableView<com.group17.greengrocer.model.Coupon> couponTable = new TableView<>();
-        
-        TableColumn<com.group17.greengrocer.model.Coupon, String> codeColumn = new TableColumn<>("Coupon Code");
-        codeColumn.setCellValueFactory(new javafx.scene.control.cell.PropertyValueFactory<>("couponCode"));
-        codeColumn.setPrefWidth(150);
-        
-        TableColumn<com.group17.greengrocer.model.Coupon, String> discountColumn = new TableColumn<>("Discount");
-        discountColumn.setCellValueFactory(cellData -> {
-            com.group17.greengrocer.model.Coupon coupon = cellData.getValue();
-            String discount = "";
-            if (coupon.getDiscountAmount() != null && coupon.getDiscountAmount().compareTo(BigDecimal.ZERO) > 0) {
-                discount = "₺" + coupon.getDiscountAmount().setScale(2, java.math.RoundingMode.HALF_UP);
-            } else if (coupon.getDiscountPercent() != null && coupon.getDiscountPercent().compareTo(BigDecimal.ZERO) > 0) {
-                discount = coupon.getDiscountPercent() + "%";
-            }
-            return new javafx.beans.property.SimpleStringProperty(discount);
-        });
-        discountColumn.setPrefWidth(100);
-        
-        TableColumn<com.group17.greengrocer.model.Coupon, String> statusColumn = new TableColumn<>("Status");
-        statusColumn.setCellValueFactory(cellData -> {
-            com.group17.greengrocer.model.Coupon coupon = cellData.getValue();
-            String status;
-            if (coupon.isUsed()) {
-                status = "Used";
-            } else if (coupon.getExpiryDate() != null && coupon.getExpiryDate().isBefore(java.time.LocalDateTime.now())) {
-                status = "Expired";
-            } else {
-                status = "Available";
-            }
-            return new javafx.beans.property.SimpleStringProperty(status);
-        });
-        statusColumn.setPrefWidth(100);
-        
-        TableColumn<com.group17.greengrocer.model.Coupon, String> expiryColumn = new TableColumn<>("Expiry Date");
-        expiryColumn.setCellValueFactory(cellData -> {
-            com.group17.greengrocer.model.Coupon coupon = cellData.getValue();
-            String expiry = coupon.getExpiryDate() != null ? coupon.getExpiryDate().toString() : "No expiry";
-            return new javafx.beans.property.SimpleStringProperty(expiry);
-        });
-        expiryColumn.setPrefWidth(180);
-        
-        couponTable.getColumns().addAll(codeColumn, discountColumn, statusColumn, expiryColumn);
-        couponTable.setItems(javafx.collections.FXCollections.observableArrayList(allCoupons));
-        couponTable.setPrefHeight(400);
-        
-        VBox content = new VBox(10);
-        content.setPadding(new Insets(10));
-        
-        Label infoLabel = new Label("Available Coupons: " + availableCoupons.size() + " | Total Coupons: " + allCoupons.size());
-        infoLabel.setStyle("-fx-font-weight: bold;");
-        
-        content.getChildren().addAll(infoLabel, couponTable);
-        
-        dialog.getDialogPane().setContent(content);
-        dialog.getDialogPane().getButtonTypes().add(ButtonType.CLOSE);
-        
-        dialog.showAndWait();
     }
     
     /**

@@ -139,8 +139,8 @@ public class ProductRepository {
      * Create a new product
      */
     public boolean create(Product product) throws SQLException {
-        String sql = "INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description, imagePath, productImage, imageMimeType) " +
-                     "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO ProductInfo (productName, productType, pricePerKg, stock, threshold, description, imagePath) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
@@ -152,12 +152,6 @@ public class ProductRepository {
             stmt.setBigDecimal(5, product.getThreshold());
             stmt.setString(6, product.getDescription());
             stmt.setString(7, product.getImagePath());
-            if (product.getProductImage() != null) {
-                stmt.setBytes(8, product.getProductImage());
-            } else {
-                stmt.setNull(8, java.sql.Types.BLOB);
-            }
-            stmt.setString(9, product.getImageMimeType());
             
             int rowsAffected = stmt.executeUpdate();
             
@@ -178,83 +172,21 @@ public class ProductRepository {
      */
     public boolean update(Product product) throws SQLException {
         String sql = "UPDATE ProductInfo SET productName = ?, productType = ?, pricePerKg = ?, " +
-                     "stock = ?, threshold = ?, description = ?, imagePath = ?, productImage = ?, imageMimeType = ? WHERE productId = ?";
-        
-        System.out.println("=== ProductRepository.update() called ===");
-        System.out.println("Product ID: " + product.getProductId());
-        System.out.println("Product Name: " + product.getProductName());
-        System.out.println("Product Type: " + product.getProductType());
-        System.out.println("Price: " + product.getPricePerKg());
-        System.out.println("Stock: " + product.getStock());
-        System.out.println("Threshold: " + product.getThreshold());
-        System.out.println("Description: " + (product.getDescription() != null ? product.getDescription() : "null"));
-        System.out.println("Image Path: " + (product.getImagePath() != null ? product.getImagePath() : "null"));
-        System.out.println("Image Bytes: " + (product.getProductImage() != null ? product.getProductImage().length + " bytes" : "null"));
-        System.out.println("Image MIME Type: " + (product.getImageMimeType() != null ? product.getImageMimeType() : "null"));
+                     "stock = ?, threshold = ?, description = ?, imagePath = ? WHERE productId = ?";
         
         try (Connection conn = dbAdapter.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             
-            // Set parameters with null checks
             stmt.setString(1, product.getProductName());
             stmt.setString(2, product.getProductType());
             stmt.setBigDecimal(3, product.getPricePerKg());
             stmt.setBigDecimal(4, product.getStock());
             stmt.setBigDecimal(5, product.getThreshold());
+            stmt.setString(6, product.getDescription());
+            stmt.setString(7, product.getImagePath());
+            stmt.setInt(8, product.getProductId());
             
-            if (product.getDescription() != null && !product.getDescription().trim().isEmpty()) {
-                stmt.setString(6, product.getDescription());
-            } else {
-                stmt.setNull(6, java.sql.Types.VARCHAR);
-            }
-            
-            if (product.getImagePath() != null && !product.getImagePath().trim().isEmpty()) {
-                stmt.setString(7, product.getImagePath());
-            } else {
-                stmt.setNull(7, java.sql.Types.VARCHAR);
-            }
-            
-            if (product.getProductImage() != null && product.getProductImage().length > 0) {
-                stmt.setBytes(8, product.getProductImage());
-                System.out.println("Setting BLOB: " + product.getProductImage().length + " bytes, MIME: " + product.getImageMimeType());
-            } else {
-                stmt.setNull(8, java.sql.Types.BLOB);
-                System.out.println("Setting BLOB to NULL");
-            }
-            
-            if (product.getImageMimeType() != null && !product.getImageMimeType().trim().isEmpty()) {
-                stmt.setString(9, product.getImageMimeType());
-            } else {
-                stmt.setNull(9, java.sql.Types.VARCHAR);
-            }
-            
-            stmt.setInt(10, product.getProductId());
-            
-            System.out.println("Executing UPDATE query...");
-            int rowsAffected = stmt.executeUpdate();
-            System.out.println("Update query executed. Rows affected: " + rowsAffected);
-            
-            if (rowsAffected == 0) {
-                System.err.println("WARNING: No rows were updated. Product ID: " + product.getProductId() + " may not exist.");
-                // Verify if product exists
-                Product existing = findById(product.getProductId());
-                if (existing == null) {
-                    System.err.println("ERROR: Product with ID " + product.getProductId() + " does not exist in database!");
-                } else {
-                    System.err.println("Product exists but update failed. Check for constraint violations or data type mismatches.");
-                }
-            } else {
-                System.out.println("SUCCESS: Product updated successfully!");
-            }
-            
-            return rowsAffected > 0;
-        } catch (SQLException e) {
-            System.err.println("SQLException in ProductRepository.update():");
-            System.err.println("  Message: " + e.getMessage());
-            System.err.println("  SQL State: " + e.getSQLState());
-            System.err.println("  Error Code: " + e.getErrorCode());
-            e.printStackTrace();
-            throw e; // Re-throw to be handled by service layer
+            return stmt.executeUpdate() > 0;
         }
     }
     
@@ -301,23 +233,6 @@ public class ProductRepository {
         product.setThreshold(rs.getBigDecimal("threshold"));
         product.setDescription(rs.getString("description"));
         product.setImagePath(rs.getString("imagePath"));
-        
-        // Read BLOB image if available
-        try {
-            java.sql.Blob imageBlob = rs.getBlob("productImage");
-            if (imageBlob != null && imageBlob.length() > 0) {
-                product.setProductImage(imageBlob.getBytes(1, (int) imageBlob.length()));
-            }
-        } catch (SQLException e) {
-            // Column might not exist in old schema, ignore
-        }
-        
-        try {
-            product.setImageMimeType(rs.getString("imageMimeType"));
-        } catch (SQLException e) {
-            // Column might not exist in old schema, ignore
-        }
-        
         return product;
     }
 }

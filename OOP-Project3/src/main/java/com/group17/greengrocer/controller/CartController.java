@@ -325,54 +325,21 @@ public class CartController implements Initializable {
                         com.group17.greengrocer.util.Session.getInstance().getCurrentUserId());
                 }
                 
-                // Generate PDF invoice (may fail if PDFBox is not available)
-                try {
-                    String invoicePath = orderService.generateInvoicePDF(order);
-                    // Save invoice PDF bytes to database (BLOB)
-                    orderService.saveInvoiceData(order.getOrderId(), invoicePath, order.getInvoiceContent());
-                    // Show invoice download option
-                    showInvoiceDownload(order.getOrderId(), invoicePath);
-                } catch (Exception e) {
-                    System.err.println("Warning: Failed to generate PDF invoice: " + e.getMessage());
-                    e.printStackTrace();
-                    // Order is still created, just invoice generation failed
-                    showAlert(Alert.AlertType.WARNING, "Invoice Warning", 
-                        "Order created successfully, but invoice generation failed. " +
-                        "You can still view your order in 'My Orders'.");
-                }
+                // Generate PDF invoice
+                String invoicePath = orderService.generateInvoicePDF(order);
+                orderService.saveInvoicePath(order.getOrderId(), invoicePath);
+                
+                // Show invoice download option
+                showInvoiceDownload(order.getOrderId(), invoicePath);
                 
                 showAlert(Alert.AlertType.INFORMATION, "Success", 
                     "Order placed successfully! Order ID: " + order.getOrderId());
                 handleClose();
             } else {
-                // This should not happen now as we throw exceptions instead of returning false
                 showError("Failed to create order. Please try again.");
             }
         } catch (IllegalArgumentException e) {
-            // Validation errors (delivery date, stock, etc.)
-            showError("Order Error:\n" + e.getMessage());
-        } catch (RuntimeException e) {
-            // Database errors and other runtime errors
-            String errorMsg = e.getMessage();
-            if (e.getCause() != null && e.getCause() instanceof java.sql.SQLException) {
-                java.sql.SQLException sqlEx = (java.sql.SQLException) e.getCause();
-                errorMsg = "Database Error:\n" + errorMsg + 
-                    "\n\nSQL Details:\n" +
-                    "SQL State: " + sqlEx.getSQLState() + "\n" +
-                    "Error Code: " + sqlEx.getErrorCode();
-            }
-            showError("Failed to create order:\n" + errorMsg + 
-                "\n\nPlease check:\n" +
-                "- Database connection\n" +
-                "- Console for detailed error messages");
-            System.err.println("Order creation failed: " + e.getMessage());
-            e.printStackTrace();
-        } catch (Exception e) {
-            // Unexpected errors
-            System.err.println("Unexpected error creating order: " + e.getMessage());
-            e.printStackTrace();
-            showError("Failed to create order: " + e.getMessage() + 
-                "\n\nPlease check console for details.");
+            showError(e.getMessage());
         }
     }
     

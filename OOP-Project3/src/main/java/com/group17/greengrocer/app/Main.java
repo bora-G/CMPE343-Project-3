@@ -24,25 +24,18 @@ public class Main extends Application {
             System.err.println("1. Create the database: CREATE DATABASE greengrocer_db;");
             System.err.println("2. Run the schema.sql file to create tables and insert sample data");
             System.err.println("3. Update DatabaseAdapter.java with your MySQL credentials");
-        } else {
-            // Run database migrations to ensure schema is up-to-date
-            dbAdapter.runMigrations();
         }
         
         // Load login view
         FXMLLoader loader = new FXMLLoader(getClass().getResource("/fxml/LoginView.fxml"));
         Parent root = loader.load();
         
-        Scene scene = new Scene(root, 960, 540);
+        Scene scene = new Scene(root);
         scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
         
         primaryStage.setTitle("Local Greengrocer - Login");
         primaryStage.setScene(scene);
         primaryStage.setResizable(true);
-        
-        // Center the window on screen
-        primaryStage.centerOnScreen();
-        
         primaryStage.show();
     }
     

@@ -92,12 +92,10 @@ public class LoginController {
         
         FXMLLoader loader = new FXMLLoader(getClass().getResource(fxmlFile));
         Parent root = loader.load();
-        Scene scene = new Scene(root, 960, 540);
-        scene.getStylesheets().add(getClass().getResource("/css/styles.css").toExternalForm());
+        Scene scene = new Scene(root);
         Stage stage = (Stage) loginButton.getScene().getWindow();
         stage.setScene(scene);
         stage.setTitle("Group17 GreenGrocer");
-        stage.centerOnScreen();
         stage.show();
     }
     

@@ -4,6 +4,7 @@ import com.group17.greengrocer.model.Coupon;
 import com.group17.greengrocer.util.DatabaseAdapter;
 import java.math.BigDecimal;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -98,49 +99,6 @@ public class CouponRepository {
             
             while (rs.next()) {
                 coupons.add(mapResultSetToCoupon(rs));
-            }
-        }
-        return coupons;
-    }
-    
-    /**
-     * Get all coupons for a specific customer
-     */
-    public List<Coupon> findByCustomerId(int customerId) throws SQLException {
-        String sql = "SELECT * FROM Coupon WHERE customerId = ? ORDER BY createdAt DESC";
-        List<Coupon> coupons = new ArrayList<>();
-        
-        try (Connection conn = dbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, customerId);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    coupons.add(mapResultSetToCoupon(rs));
-                }
-            }
-        }
-        return coupons;
-    }
-    
-    /**
-     * Get available (unused and not expired) coupons for a customer
-     */
-    public List<Coupon> findAvailableByCustomerId(int customerId) throws SQLException {
-        String sql = "SELECT * FROM Coupon WHERE customerId = ? AND isUsed = FALSE " +
-                     "AND (expiryDate IS NULL OR expiryDate > NOW()) ORDER BY createdAt DESC";
-        List<Coupon> coupons = new ArrayList<>();
-        
-        try (Connection conn = dbAdapter.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-            
-            stmt.setInt(1, customerId);
-            
-            try (ResultSet rs = stmt.executeQuery()) {
-                while (rs.next()) {
-                    coupons.add(mapResultSetToCoupon(rs));
-                }
             }
         }
         return coupons;
