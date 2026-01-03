@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.CartController">
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group05.greengrocer.controller.CartController">
    <top>
       <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #27ae60; -fx-padding: 15;">
          <children>

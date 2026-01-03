@@ -5,7 +5,7 @@
 <?import javafx.scene.layout.*?>
 <?import javafx.scene.text.Font?>
 
-<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group17.greengrocer.controller.CarrierController">
+<BorderPane xmlns="http://javafx.com/javafx/11.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.group05.greengrocer.controller.CarrierController">
    <top>
       <HBox alignment="CENTER_LEFT" spacing="10.0" style="-fx-background-color: #e67e22; -fx-padding: 15;">
          <children>
@@ -38,7 +38,7 @@
                               <TableColumn fx:id="deliveryAddressColumn1" prefWidth="200.0" text="Delivery Address" />
                               <TableColumn fx:id="orderDateColumn1" prefWidth="150.0" text="Order Date" />
                               <TableColumn fx:id="requestedDeliveryDateColumn" prefWidth="150.0" text="Requested Delivery" />
-                              <TableColumn fx:id="selectColumn" prefWidth="180.0" text="Actions" />
+                              <TableColumn fx:id="selectColumn" prefWidth="240.0" text="Actions" />
                            </columns>
                         </TableView>
                         <HBox spacing="10.0">
@@ -65,7 +65,7 @@
                               <TableColumn fx:id="totalCostColumn2" prefWidth="120.0" text="Total Cost" />
                               <TableColumn fx:id="deliveryAddressColumn2" prefWidth="200.0" text="Delivery Address" />
                               <TableColumn fx:id="orderDateColumn2" prefWidth="150.0" text="Order Date" />
-                              <TableColumn fx:id="completeColumn" prefWidth="100.0" text="Action" />
+                              <TableColumn fx:id="completeColumn" prefWidth="200.0" text="Actions" />
                            </columns>
                         </TableView>
                      </children>
