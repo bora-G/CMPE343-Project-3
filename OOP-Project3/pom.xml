@@ -5,7 +5,7 @@
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.group17</groupId>
+    <groupId>com.group05</groupId>
     <artifactId>greengrocer</artifactId>
     <version>1.0.0</version>
     <packaging>jar</packaging>
@@ -57,11 +57,17 @@
             <version>${javafx.version}</version>
         </dependency>
 
-        <!-- Apache PDFBox for generating PDF invoices -->
         <dependency>
             <groupId>org.apache.pdfbox</groupId>
             <artifactId>pdfbox</artifactId>
             <version>2.0.29</version>
+        </dependency>
+
+        <!-- Commons Logging (Required by PDFBox) -->
+        <dependency>
+            <groupId>commons-logging</groupId>
+            <artifactId>commons-logging</artifactId>
+            <version>1.2</version>
         </dependency>
     </dependencies>
 
@@ -84,7 +90,7 @@
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
                 <configuration>
-                    <mainClass>com.group17.greengrocer.app.Main</mainClass>
+                    <mainClass>com.group05.greengrocer.app.Main</mainClass>
                     <options>
                         <option>--add-modules</option>
                         <option>javafx.controls,javafx.fxml</option>
@@ -98,7 +104,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.1.0</version>
                 <configuration>
-                    <mainClass>com.group17.greengrocer.app.Main</mainClass>
+                    <mainClass>com.group05.greengrocer.app.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>
