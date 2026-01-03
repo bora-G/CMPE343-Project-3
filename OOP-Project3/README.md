@@ -2,7 +2,7 @@
 
 A comprehensive JavaFX + JDBC + MySQL application for managing a local greengrocer business with customer, carrier, and owner management features.
 
-**CMPE343 Project 3 - Group 17**
+**CMPE343 Project 3 - Group 05**
 
 ---
 
@@ -77,7 +77,7 @@ This command will automatically download all dependencies (JavaFX, MySQL Connect
 
 ### Step 3: Check Database Connection Settings
 
-Open `src/main/java/com/group17/greengrocer/util/DatabaseAdapter.java` and verify your MySQL password:
+Open `src/main/java/com/group05/greengrocer/util/DatabaseAdapter.java` and verify your MySQL password:
 
 ```java
 private static final String DB_URL = "jdbc:mysql://localhost:3306/greengrocer_db";
@@ -308,7 +308,7 @@ OOP-Project3/
 ├── src/
 │   └── main/
 │       ├── java/
-│       │   └── com/group17/greengrocer/
+│       │   └── com/group05/greengrocer/
 │       │       ├── app/        # Main application entry point
 │       │       ├── controller/ # JavaFX controllers
 │       │       ├── model/      # POJO/entity classes
@@ -502,7 +502,7 @@ mvn javadoc:javadoc
 
 ## 👥 Contributors
 
-**Group 17 - CMPE343 Project 3**
+**Group 05 - CMPE343 Project 3**
 
 ---
 
@@ -516,9 +516,8 @@ This project is created for educational purposes (CMPE343 Project 3).
 
 If you encounter issues:
 1. Check the **Troubleshooting** section in this README
-2. Review `DATABASE_SETUP.md` and `IMPORT_WITH_WORKBENCH.md` files
-3. Examine project structure and code comments
-4. Generate and review JavaDoc documentation
+2. Examine project structure and code comments
+3. Generate and review JavaDoc documentation
 
 ---
 
